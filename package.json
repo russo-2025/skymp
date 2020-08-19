@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "install": "npm run configure && npm run build",
-    "configure": "cmake-js configure",
+    "configure": "cmake-js configure --arch x64",
     "build": "tsc --p tsconfig.back.json && tsc --p tsconfig.front.json && cd build && cmake --build .",
     "build-ts": "tsc --p tsconfig.back.json && tsc --p tsconfig.front.json",
     "build-cpp": "cd build && cmake --build .",
