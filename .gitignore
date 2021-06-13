@@ -1,6 +1,7 @@
 vcpkg_installed
 node_modules
 build
+data
 dist_back
 dist_front
 dist

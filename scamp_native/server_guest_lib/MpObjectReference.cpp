@@ -248,7 +248,7 @@ void MpObjectReference::VisitProperties(const PropertiesVisitor& visitor,
 
   // Property flags (isVisibleByOwner, isVisibleByNeighbor) should be checked
   // by a visitor
-  auto& dynamicFields = pImpl->ChangeForm().dynamicFields.GetAsJson();
+  auto& dynamicFields = pImpl->ChangeForm().dynamicFields;
   for (auto it = dynamicFields.begin(); it != dynamicFields.end(); ++it) {
     std::string dump = it.value().dump();
     visitor(it.key().data(), dump.data());
@@ -508,12 +508,11 @@ void MpObjectReference::UpdateHoster(uint32_t newHosterId)
 
 void MpObjectReference::SetProperty(const std::string& propertyName,
                                     const nlohmann::json& newValue,
-                                    const JsValue& newValueChakra,
                                     bool isVisibleByOwner,
                                     bool isVisibleByNeighbor)
 {
   pImpl->EditChangeForm([&](MpChangeFormREFR& changeForm) {
-    changeForm.dynamicFields.Set(propertyName, newValueChakra);
+      changeForm.dynamicFields[propertyName] = newValue;
   });
   if (isVisibleByNeighbor) {
     SendPropertyToListeners(propertyName.data(), newValue);
@@ -804,11 +803,6 @@ void MpObjectReference::ApplyChangeForm(const MpChangeForm& changeForm)
   }
 
   MpApiOnInit();
-}
-
-const DynamicFields& MpObjectReference::GetDynamicFields() const
-{
-  return pImpl->ChangeForm().dynamicFields;
 }
 
 void MpObjectReference::SetCellOrWorldObsolete(uint32_t newWorldOrCell)

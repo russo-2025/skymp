@@ -19,11 +19,6 @@ export declare interface Bot {
   send(msg: Record<string, unknown>): void;
 }
 
-export type SendChatMessageFn = (
-  formId: number,
-  message: Record<string, unknown>
-) => void;
-
 export declare class ScampServer {
   constructor(serverPort: number, maxPlayers: number);
 
@@ -56,10 +51,7 @@ export declare class ScampServer {
   createBot(): Bot;
   getUserByActor(formId: number): number;
 
-  executeJavaScriptOnChakra(src: string): void;
-  setSendUiMessageImplementation(fn: SendChatMessageFn): void;
-  onUiEvent(formId: number, msg: Record<string, unknown>): void;
-  clear(): void;
+  getMpApi(): Record<string, unknown>;
 }
 
 module.exports.ScampServer = scampNativeNode.ScampServer;
