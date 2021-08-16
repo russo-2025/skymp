@@ -148,7 +148,9 @@ bool IsBanned(MpActor& actor)
 
 void PartOne::SetUserActor(Networking::UserId userId, uint32_t actorFormId)
 {
-  serverState.EnsureUserExists(userId);
+  if (!serverState.UserIsExists(userId)) {
+    return;
+  }
 
   if (actorFormId > 0) {
     auto& actor = worldState.GetFormAt<MpActor>(actorFormId);
@@ -180,7 +182,9 @@ void PartOne::SetUserActor(Networking::UserId userId, uint32_t actorFormId)
 
 uint32_t PartOne::GetUserActor(Networking::UserId userId)
 {
-  serverState.EnsureUserExists(userId);
+  if (!serverState.UserIsExists(userId)) {
+      return 0;
+  }
 
   auto actor = serverState.ActorByUser(userId);
   if (!actor)

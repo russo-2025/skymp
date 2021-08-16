@@ -29,5 +29,5 @@ public:
   bool IsConnected(Networking::UserId userId) const;
   MpActor* ActorByUser(Networking::UserId userId);
   Networking::UserId UserByActor(MpActor* actor);
-  void EnsureUserExists(Networking::UserId userId);
+  bool UserIsExists(Networking::UserId userId);
 };

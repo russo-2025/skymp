@@ -43,9 +43,10 @@ Networking::UserId ServerState::UserByActor(MpActor* actor)
   return actorsMap.Find(actor);
 }
 
-void ServerState::EnsureUserExists(Networking::UserId userId)
+bool ServerState::UserIsExists(Networking::UserId userId)
 {
-  if (userInfo.size() <= userId || !userInfo[userId])
-    throw std::runtime_error("User with id " + std::to_string(userId) +
-                             " doesn't exist");
+    if (userInfo.size() <= userId || !userInfo[userId])
+        return false;
+
+    return true;
 }
