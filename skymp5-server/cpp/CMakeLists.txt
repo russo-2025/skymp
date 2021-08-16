@@ -146,6 +146,19 @@ add_test(
 # Link vcpkg deps
 #
 
+#
+# scamp_lib C Api
+#
+file(GLOB_RECURSE sources "${SKYMP5_SERVER_SOURCE_DIR}/cpp/scamp_lib/*")
+if(MSVC)
+list(APPEND sources "${CMAKE_SOURCE_DIR}/.clang-format")
+endif()
+add_library(scamp_lib SHARED ${sources})
+
+target_link_libraries(scamp_lib PRIVATE mp_common server_guest_lib)
+list(APPEND VCPKG_DEPENDENT scamp_lib)
+apply_default_settings(TARGETS scamp_lib)
+
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
 foreach(target ${VCPKG_DEPENDENT})
