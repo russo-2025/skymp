@@ -41,7 +41,8 @@
 namespace ScampLib {
     typedef void onConnectFn(Networking::UserId userId);
     typedef void onDisconnectFn(Networking::UserId userId);
-    typedef void OnCustomPacketFn(Networking::UserId userId, char* content);
+    typedef void OnCustomPacketFn(Networking::UserId userId, char* json_data);
+    typedef void OnMpApiEventFn(char* eventName, char* args, uint32_t formId);
 }
 
 class ScampServerListener : public PartOne::Listener
@@ -51,23 +52,24 @@ public:
         connect = [](Networking::UserId userId) {};
         disconnect = [](Networking::UserId userId) {};
         customPacket = [](Networking::UserId userId, char* content) {};
+        mpApiEvent = [](char* eventName, char* args, uint32_t formId) {};
     }
 
-    void setConnectHandler(ScampLib::onConnectFn* a_connect) {
-        connect = a_connect;
+    void setConnectHandler(ScampLib::onConnectFn* handler) {
+        connect = handler;
     }
 
-    void setDisconnectHandler(ScampLib::onDisconnectFn* a_disconnect) {
-        disconnect = a_disconnect;
+    void setDisconnectHandler(ScampLib::onDisconnectFn* handler) {
+        disconnect = handler;
     }
 
-    void setCustomPacketHandler(ScampLib::OnCustomPacketFn* a_customPacket) {
-        customPacket = a_customPacket;
+    void setCustomPacketHandler(ScampLib::OnCustomPacketFn* handler) {
+        customPacket = handler;
     }
 
-    ScampLib::onConnectFn* connect;
-    ScampLib::onDisconnectFn* disconnect;
-    ScampLib::OnCustomPacketFn* customPacket;
+    void setMpApiEventHandler(ScampLib::OnMpApiEventFn* handler) {
+        mpApiEvent = handler;
+    }
 
     void OnConnect(Networking::UserId userId) override
     {
@@ -83,13 +85,23 @@ public:
     {
         using std::string;
         std::string str = simdjson::minify(content);
+
         customPacket(userId, (char*)str.c_str());
     }
 
     bool OnMpApiEvent(const char* eventName, std::optional<simdjson::dom::element> args, std::optional<uint32_t> formId)
     {
+        using std::string;
+        std::string str = simdjson::minify(args.value());
+
+        mpApiEvent((char*)eventName, (char*)str.c_str(), formId.value());
         return true;
     }
+
+    ScampLib::onConnectFn* connect;
+    ScampLib::onDisconnectFn* disconnect;
+    ScampLib::OnCustomPacketFn* customPacket; 
+    ScampLib::OnMpApiEventFn* mpApiEvent;
 };
 
 class ScampServer {
@@ -102,6 +114,7 @@ public:
     std::shared_ptr<Networking::IServer> server;
     std::shared_ptr<spdlog::logger> logger;
     nlohmann::json serverSettings;
+    GamemodeApi::State gamemodeApiState;
 };
 
 /*
@@ -174,7 +187,7 @@ std::shared_ptr<ISaveStorage> CreateSaveStorage(std::shared_ptr<IDatabase> db, s
 }
 
 extern "C" {
-    __declspec(dllexport) ScampServer* CreateServer(uint32_t port, uint32_t maxConnections, ScampLib::onConnectFn* onConnect, ScampLib::onDisconnectFn* onDisconnect, ScampLib::OnCustomPacketFn* OnCustomPacket)
+    __declspec(dllexport) ScampServer* CreateServer(uint32_t port, uint32_t maxConnections)
     {
         ScampServer* ss = new ScampServer();
 
@@ -244,12 +257,24 @@ extern "C" {
             ss->partOne->worldState.SetRelootTime(recordType, time);
             ss->logger->info("'{}' will be relooted every {} ms", recordType, timeMs);
         }
-           
-        ss->listener->setConnectHandler(onConnect);
-        ss->listener->setDisconnectHandler(onDisconnect);
-        ss->listener->setCustomPacketHandler(OnCustomPacket);
 
         return ss;
+    }
+
+    __declspec(dllexport) void SetConnectHandler(ScampServer* ss, ScampLib::onConnectFn* handler) {
+        ss->listener->setConnectHandler(handler);
+    }
+
+    __declspec(dllexport) void SetDisconnectHandler(ScampServer* ss, ScampLib::onDisconnectFn* handler) {
+        ss->listener->setDisconnectHandler(handler);
+    }
+
+    __declspec(dllexport) void SetCustomPacketHandler(ScampServer* ss, ScampLib::OnCustomPacketFn* handler) {
+        ss->listener->setCustomPacketHandler(handler);
+    }
+
+    __declspec(dllexport) void SetMpApiEventHandler(ScampServer* ss, ScampLib::OnMpApiEventFn* handler) {
+        ss->listener->setMpApiEventHandler(handler);
     }
 
     /*
@@ -272,7 +297,6 @@ extern "C" {
     ScampServer::CreateBot
     ScampServer::ExecuteJavaScriptOnChakra
     ScampServer::SetSendUiMessageImplementation
-    ScampServer::OnUiEvent
     ScampServer::Clear
     */
 
@@ -281,6 +305,7 @@ extern "C" {
         float y;
         float z;
     };
+
 
     __declspec(dllexport) void Tick(ScampServer* ss)
     {
@@ -376,6 +401,7 @@ extern "C" {
         std::string content = std::string(data);
         ss->partOne->SendCustomPacket(userId, content);
     }
+
     /*
     Napi::Value CreateBot(const Napi::CallbackInfo& info)
     {
@@ -425,38 +451,108 @@ extern "C" {
         return info.Env().Undefined();
     }
 
-    void OnUiEvent(uint32_t formId, std::string msg)
-    {
-        //call js function `onUiEvent`
+    //mp api
+
+    /*
+    getServerSettings
+    readDataDirectory
+    readDataFile
+    */
+
+    __declspec(dllexport) void Clear(ScampServer* ss) {
+        ss->gamemodeApiState = GamemodeApi::State();
+        ss->partOne->NotifyGamemodeApiStateChanged(ss->gamemodeApiState);
     }
 
-    void Clear()
-    {
-        try {
-            gamemodeApiState = GamemodeApi::State();
-            partOne->NotifyGamemodeApiStateChanged(gamemodeApiState);
+    __declspec(dllexport) void MakeEventSource(ScampServer* ss, char* eventName, char* functionBody) {
+        std::string _eventName = std::string(eventName);
+
+        if (ss->gamemodeApiState.createdEventSources.count(_eventName)) {
+            throw std::runtime_error("'eventName' must be unique");
         }
-        catch (std::exception& e) {
-            throw (std::string)e.what();
-        }
+
+        ss->gamemodeApiState.createdEventSources[_eventName] = { std::string(functionBody) };
+        ss->partOne->NotifyGamemodeApiStateChanged(ss->gamemodeApiState);
     }
 
-    __declspec(dllexport) void RegisterPapyrusFunction(std::string className, std::string funcName, std::string callType, ) {
-        auto& vm = partOne->worldState.GetPapyrusVm();
+    /*
+    __declspec(dllexport) void GetOnlinePlayers(ScampServer* ss, uint32_t formId) {
+    }
+
+    __declspec(dllexport) void GetOnlinePlayers(ScampServer* ss, uint32_t formId) {
+    }*/
+
+    /*
+    makeProperty
+    get
+    set
+    place
+    lookupEspmRecordById
+    getEspmLoadOrder
+    getDescFromId
+    getIdFromDesc
+    sendUiMessage
+    */
+
+    //vm api
+
+    typedef VarValue* VmValue;
+    typedef VarValue** VmFunctionArgs;
+    typedef VarValue* (*VmFunction)(VmFunctionArgs args, size_t args_len);
+
+    __declspec(dllexport) VmValue VmValueCreateBool(bool val) {
+        return new VarValue(val);
+    }
+
+    __declspec(dllexport) VmValue VmValueCreateInt(int32_t val) {
+        return new VarValue(val);
+    }
+
+    __declspec(dllexport) VmValue VmValueCreateFloat(double val) {
+        return new VarValue(val);
+    }
+
+    __declspec(dllexport) VmValue VmValueCreateString(char* val) {
+        return new VarValue(val);
+    }
+
+    __declspec(dllexport) VmValue VmValueCreateNone() {
+        return new VarValue(VarValue::None());
+    }
+
+    __declspec(dllexport) void RegisterVmFunction(ScampServer* ss, char* className, char* funcName, FunctionType funcType, VmFunction f) {
+        auto& vm = ss->partOne->worldState.GetPapyrusVm();
         
-        std::vector<VarValue> args(array_name_from, array_name_to);
+        vm.RegisterFunction(std::string(className), std::string(funcName), funcType,
+            [f](const VarValue& self, const std::vector<VarValue>& args) {
+                VmFunctionArgs arr = new VmValue[args.size() + 1];
 
-        FunctionType fType;
-        if (callType == "method") {
-            fType = FunctionType::Method;
-        }
-        else if (callType == "global") {
-            fType = FunctionType::GlobalFunction;
+                arr[0] = (VarValue*)&self;
+
+                for(size_t i = 0; i < args.size(); i++) {
+                    arr[i + 1] = (VarValue*)&args[i];
+                }
+
+                return *f(arr, args.size() + 1);
+            }
+        );
+    }
+
+    __declspec(dllexport) VmValue CallVmFunction(ScampServer* ss, FunctionType funcType, char* className, char* funcName, VmFunctionArgs args, size_t args_len) {
+        auto& vm = ss->partOne->worldState.GetPapyrusVm();
+
+
+        VarValue res;
+
+        std::vector<VarValue> vector_args = std::vector<VarValue>(args[1], args[args_len]);
+
+        if (funcType == FunctionType::Method) {
+            res = vm.CallMethod(static_cast<IGameObject*>(*args[0]), funcName, vector_args);
         }
         else {
-            throw std::runtime_error("Unknown callType " + callType);
+            res = vm.CallStatic(className, funcName, vector_args);
         }
 
-        vm.RegisterFunction(className, funcName, fType, args);
-    }*/
+        return new VarValue(res);
+    }
 };
