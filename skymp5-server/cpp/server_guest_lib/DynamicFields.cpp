@@ -73,7 +73,10 @@ const nlohmann::json& DynamicFields::GetAsJson() const
     auto obj = nlohmann::json::object();
 
     for (auto& [key, v] : pImpl->props) {
-      obj[key] = JsValueToJson(v);
+      try{
+        obj[key] = JsValueToJson(v);
+      }
+      catch (...) {}
     }
 
     pImpl->jsonCache = std::move(obj);
