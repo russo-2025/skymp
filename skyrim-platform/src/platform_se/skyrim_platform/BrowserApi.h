@@ -1,37 +1,38 @@
 #pragma once
 #include "JsEngine.h"
+#include "IBrowser.h"
 #include "TPOverlayService.h"
 #include <memory>
 
 namespace BrowserApi {
-struct State
+/*struct State
 {
   std::shared_ptr<OverlayService> overlayService;
-};
+};*/
 
 JsValue SetVisible(const JsFunctionArguments& args);
 JsValue SetFocused(const JsFunctionArguments& args);
-JsValue LoadUrl(const JsFunctionArguments& args, std::shared_ptr<State> state);
+//JsValue LoadUrl(const JsFunctionArguments& args, std::shared_ptr<State> state);
 JsValue GetToken(const JsFunctionArguments& args);
-JsValue ExecuteJavaScript(const JsFunctionArguments& args,
-                          std::shared_ptr<State> state);
+//JsValue ExecuteJavaScript(const JsFunctionArguments& args, std::shared_ptr<State> state);
 
-inline void Register(JsValue& exports, std::shared_ptr<State> state)
+inline void Register(JsValue& exports, std::shared_ptr<IBrowser> browser)
 {
-  auto browser = JsValue::Object();
-  browser.SetProperty("setVisible", JsValue::Function(SetVisible));
-  browser.SetProperty("setFocused", JsValue::Function(SetFocused));
-  browser.SetProperty(
+  auto browserObj = JsValue::Object();
+  browserObj.SetProperty("setVisible", JsValue::Function(SetVisible));
+  browserObj.SetProperty("setFocused", JsValue::Function(SetFocused));
+  browserObj.SetProperty(
     "loadUrl",
     JsValue::Function([=](const JsFunctionArguments& args) -> JsValue {
-      return LoadUrl(args, state);
+      return browser->LoadUrl(static_cast<std::string>(args[1]));
     }));
-  browser.SetProperty("getToken", JsValue::Function(GetToken));
-  browser.SetProperty(
+  browserObj.SetProperty("getToken", JsValue::Function(GetToken));
+  browserObj.SetProperty(
     "executeJavaScript",
     JsValue::Function([=](const JsFunctionArguments& args) -> JsValue {
-      return ExecuteJavaScript(args, state);
+      browser->ExecuteJavaScript(static_cast<std::string>(args[1]));
+      return JsValue::Undefined();
     }));
-  exports.SetProperty("browser", browser);
+  exports.SetProperty("browser", browserObj);
 }
 }

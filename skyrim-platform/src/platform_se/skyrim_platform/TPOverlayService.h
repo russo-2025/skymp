@@ -1,11 +1,8 @@
 #pragma once
 
 #include <cef/core_library/Meta.hpp>
+#include <cef/ui/MyChromiumApp.hpp>
 #include <include/internal/cef_ptr.h>
-
-namespace CEFUtils {
-struct MyChromiumApp;
-}
 
 struct RenderSystemD3D9;
 struct RenderSystemD3D11;

@@ -1,3 +1,5 @@
+#include "IBrowser.h"
+#include "UlBrowser.h"
 #include "BrowserApi.h"
 #include "CallNativeApi.h"
 #include "CameraApi.h"
@@ -11,7 +13,7 @@
 #include "FlowManager.h"
 #include "HttpClient.h"
 #include "HttpClientApi.h"
-#include "InputConverter.h"
+//#include "InputConverter.h"
 #include "InventoryApi.h"
 #include "JsEngine.h"
 #include "LoadGameApi.h"
@@ -21,9 +23,9 @@
 #include "ReadFile.h"
 #include "SkyrimPlatformProxy.h"
 #include "SystemPolyfill.h"
-#include "TPInputService.h"
-#include "TPOverlayService.h"
-#include "TPRenderSystemD3D11.h"
+//#include "TPInputService.h"
+//#include "TPOverlayService.h"
+//#include "TPRenderSystemD3D11.h"
 #include "TaskQueue.h"
 #include "ThreadPoolWrapper.h"
 #include <RE/ConsoleLog.h>
@@ -44,9 +46,9 @@
 #include <memory>
 #include <mutex>
 #include <shlobj.h>
-#include <skse64/GameMenus.h>
+//#include <skse64/GameMenus.h>
 #include <skse64/GameReferences.h>
-#include <skse64/NiRenderer.h>
+//#include <skse64/NiRenderer.h>
 #include <skse64/PluginAPI.h>
 #include <skse64/gamethreads.h>
 #include <sstream>
@@ -62,7 +64,8 @@ void SetupFridaHooks();
 static SKSETaskInterface* g_taskInterface = nullptr;
 static SKSEMessagingInterface* g_messaging = nullptr;
 ThreadPoolWrapper g_pool;
-std::shared_ptr<BrowserApi::State> g_browserApiState(new BrowserApi::State);
+std::shared_ptr<IBrowser> browser;
+//std::shared_ptr<BrowserApi::State> g_browserApiState(new BrowserApi::State);
 
 CallNativeApi::NativeCallRequirements g_nativeCallRequirements;
 TaskQueue g_taskQueue;
@@ -156,7 +159,7 @@ void JsTick(bool gameFunctionsAvailable)
                 ConsoleApi::Register(e);
                 DevApi::Register(e, &engine, {}, fileDir);
                 EventsApi::Register(e);
-                BrowserApi::Register(e, g_browserApiState);
+                BrowserApi::Register(e, browser);
                 InventoryApi::Register(e);
                 CallNativeApi::Register(
                   e, [] { return g_nativeCallRequirements; });
@@ -327,230 +330,6 @@ __declspec(dllexport) bool SKSEPlugin_Load_Impl(const SKSEInterface* skse)
 #define POINTER_SKYRIMSE(className, variableName, ...)                        \
   static CEFUtils::AutoPtr<className> variableName(__VA_ARGS__)
 
-inline uint32_t GetCefModifiers_(uint16_t aVirtualKey)
-{
-  uint32_t modifiers = EVENTFLAG_NONE;
-
-  if (GetAsyncKeyState(VK_MENU) & 0x8000) {
-    modifiers |= EVENTFLAG_ALT_DOWN;
-  }
-
-  if (GetAsyncKeyState(VK_CONTROL) & 0x8000) {
-    modifiers |= EVENTFLAG_CONTROL_DOWN;
-  }
-
-  if (GetAsyncKeyState(VK_SHIFT) & 0x8000) {
-    modifiers |= EVENTFLAG_SHIFT_DOWN;
-  }
-
-  if (GetAsyncKeyState(VK_LBUTTON) & 0x8000) {
-    modifiers |= EVENTFLAG_LEFT_MOUSE_BUTTON;
-  }
-
-  if (GetAsyncKeyState(VK_RBUTTON) & 0x8000) {
-    modifiers |= EVENTFLAG_RIGHT_MOUSE_BUTTON;
-  }
-
-  if (GetAsyncKeyState(VK_MBUTTON) & 0x8000) {
-    modifiers |= EVENTFLAG_MIDDLE_MOUSE_BUTTON;
-  }
-
-  if (GetAsyncKeyState(VK_CAPITAL) & 1) {
-    modifiers |= EVENTFLAG_CAPS_LOCK_ON;
-  }
-
-  if (GetAsyncKeyState(VK_NUMLOCK) & 1) {
-    modifiers |= EVENTFLAG_NUM_LOCK_ON;
-  }
-
-  if (aVirtualKey) {
-    if (aVirtualKey == VK_RCONTROL || aVirtualKey == VK_RMENU ||
-        aVirtualKey == VK_RSHIFT) {
-      modifiers |= EVENTFLAG_IS_RIGHT;
-    } else if (aVirtualKey == VK_LCONTROL || aVirtualKey == VK_LMENU ||
-               aVirtualKey == VK_LSHIFT) {
-      modifiers |= EVENTFLAG_IS_LEFT;
-    } else if (aVirtualKey >= VK_NUMPAD0 && aVirtualKey <= VK_DIVIDE) {
-      modifiers |= EVENTFLAG_IS_KEY_PAD;
-    }
-  }
-
-  return modifiers;
-}
-
-class MyInputListener : public IInputListener
-{
-public:
-  bool IsBrowserFocused() { return CEFUtils::DInputHook::ChromeFocus(); }
-
-  MyInputListener()
-  {
-    pCursorX = (float*)(REL::Module::BaseAddr() + 0x2F6C104);
-    pCursorY = (float*)(REL::Module::BaseAddr() + 0x2F6C108);
-    vkCodeDownDur.fill(0);
-  }
-
-  void Init(std::shared_ptr<OverlayService> service_,
-            std::shared_ptr<InputConverter> conv_)
-  {
-    service = service_;
-    conv = conv_;
-  }
-
-  void InjectChar(uint8_t code)
-  {
-    if (auto app = service->GetMyChromiumApp()) {
-      int virtualKeyCode = VscToVk(code);
-      int scan = code;
-      auto capitalizeLetters = GetCefModifiers_(virtualKeyCode) &
-        (EVENTFLAG_SHIFT_DOWN | EVENTFLAG_CAPS_LOCK_ON);
-      auto ch = conv->VkCodeToChar(virtualKeyCode, capitalizeLetters);
-      if (ch)
-        app->InjectKey(cef_key_event_type_t::KEYEVENT_CHAR,
-                       GetCefModifiers_(virtualKeyCode), ch, scan);
-    }
-  }
-
-  void InjectKey(uint8_t code, bool down)
-  {
-    if (auto app = service->GetMyChromiumApp()) {
-      int virtualKeyCode = VscToVk(code);
-      int scan = code;
-      app->InjectKey(down ? cef_key_event_type_t::KEYEVENT_KEYDOWN
-                          : cef_key_event_type_t::KEYEVENT_KEYUP,
-                     GetCefModifiers_(virtualKeyCode), virtualKeyCode, scan);
-    }
-  }
-
-  int VscToVk(int code)
-  {
-    int vk = MapVirtualKeyA(code, MAPVK_VSC_TO_VK);
-    if (code == 203)
-      return VK_LEFT;
-    if (code == 205)
-      return VK_RIGHT;
-    return vk;
-  }
-
-  void OnKeyStateChange(uint8_t code, bool down) noexcept override
-  {
-    if (!IsBrowserFocused())
-      return;
-
-    // Switch layout if need
-    bool switchLayoutDown = ((GetAsyncKeyState(VK_SHIFT) & 0x8000) &&
-                             (GetAsyncKeyState(VK_MENU) & 0x8000)) ||
-      (GetAsyncKeyState(VK_SHIFT) & 0x8000) &&
-        (GetAsyncKeyState(VK_CONTROL) & 0x8000);
-    if (switchLayoutDownWas != switchLayoutDown) {
-      switchLayoutDownWas = switchLayoutDown;
-      if (switchLayoutDown) {
-        conv->SwitchLayout();
-      }
-    }
-
-    // Fill vkCodeDownDur
-    int virtualKeyCode = VscToVk(code);
-    if (virtualKeyCode >= 0 && virtualKeyCode < vkCodeDownDur.size()) {
-      vkCodeDownDur[virtualKeyCode] = down ? clock() : 0;
-    }
-
-    if (auto app = service->GetMyChromiumApp()) {
-      InjectKey(code, down);
-
-      if (down) {
-        InjectChar(code);
-      }
-    }
-  }
-
-  void OnMouseWheel(int32_t delta) noexcept override
-  {
-    if (!IsBrowserFocused())
-      return;
-    if (pCursorX && pCursorY)
-      if (auto app = service->GetMyChromiumApp()) {
-        app->InjectMouseWheel(*pCursorX, *pCursorY, delta,
-                              GetCefModifiers_(0));
-      }
-  }
-
-  void OnMouseMove(float deltaX, float deltaY) noexcept override
-  {
-    auto mm = MenuManager::GetSingleton();
-    if (!mm)
-      return;
-    static const auto fs = new BSFixedString("Cursor Menu");
-    if (!mm->IsMenuOpen(fs))
-      return;
-
-    if (pCursorX && pCursorY)
-      if (auto app = service->GetMyChromiumApp()) {
-        app->InjectMouseMove(*pCursorX, *pCursorY, GetCefModifiers_(0),
-                             IsBrowserFocused());
-      }
-  }
-
-  void OnMouseStateChange(MouseButton mouseButton, bool down) noexcept override
-  {
-    if (!IsBrowserFocused())
-      return;
-    if (pCursorX && pCursorY)
-      if (auto app = service->GetMyChromiumApp()) {
-        cef_mouse_button_type_t btn;
-        switch (mouseButton) {
-          case MouseButton::Left:
-            btn = cef_mouse_button_type_t::MBT_LEFT;
-            break;
-          case MouseButton::Middle:
-            btn = cef_mouse_button_type_t::MBT_MIDDLE;
-            break;
-          case MouseButton::Right:
-            btn = cef_mouse_button_type_t::MBT_RIGHT;
-            break;
-        }
-        app->InjectMouseButton(*pCursorX, *pCursorY, btn, !down,
-                               GetCefModifiers_(0));
-      }
-  }
-
-  void OnUpdate() noexcept override
-  {
-    auto mm = MenuManager::GetSingleton();
-    if (!mm)
-      return;
-    static const auto fs = new BSFixedString("Cursor Menu");
-    if (!mm->IsMenuOpen(fs)) {
-      if (auto app = service->GetMyChromiumApp()) {
-        app->InjectMouseMove(-1.f, -1.f, GetCefModifiers_(0), false);
-      }
-    }
-    if (auto app = service->GetMyChromiumApp())
-      app->RunTasks();
-
-    // Repeat the character until the key isn't released
-    for (int i = 0; i < 256; ++i) {
-      const auto pressMoment = this->vkCodeDownDur[i];
-      if (pressMoment && clock() - pressMoment > CLOCKS_PER_SEC / 2) {
-        if (i == VK_BACK || i == VK_RIGHT || i == VK_LEFT) {
-          InjectKey(MapVirtualKeyA(i, MAPVK_VK_TO_VSC), true);
-          InjectKey(MapVirtualKeyA(i, MAPVK_VK_TO_VSC), false);
-        } else {
-          InjectChar(MapVirtualKeyA(i, MAPVK_VK_TO_VSC));
-        }
-      }
-    }
-  }
-
-private:
-  std::shared_ptr<OverlayService> service;
-  std::shared_ptr<InputConverter> conv;
-  std::array<clock_t, 256> vkCodeDownDur;
-  float* pCursorX = nullptr;
-  float* pCursorY = nullptr;
-  bool switchLayoutDownWas = false;
-};
-
 class SkyrimPlatformApp : public CEFUtils::SKSEPluginBase
 {
 public:
@@ -571,13 +350,17 @@ public:
   bool Detach() override
   {
     FlowManager::CloseProcess(L"SkyrimSE.exe");
-    FlowManager::CloseProcess(L"SkyrimPlatformCEF.exe");
+    //FlowManager::CloseProcess(L"SkyrimPlatformCEF.exe");
+    browser.reset();
     return true;
   }
 
   bool BeginMain() override
   {
-    inputConverter.reset(new InputConverter);
+    browser.reset(new PCefBrowser()); //14-15% cpu
+    //browser.reset(new UlBrowser()); //21%
+
+    /*inputConverter.reset(new InputConverter);
 
     myInputListener.reset(new MyInputListener);
 
@@ -593,29 +376,25 @@ public:
     myInputListener->Init(overlayService, inputConverter);
     g_browserApiState->overlayService = overlayService;
 
-    // inputService.reset(new InputService(*overlayService));
     renderSystem.reset(new RenderSystemD3D11(*overlayService));
-    renderSystem->m_pSwapChain = reinterpret_cast<IDXGISwapChain*>(
-      BSRenderManager::GetSingleton()->swapChain);
-
+    renderSystem->m_pSwapChain = reinterpret_cast<IDXGISwapChain*>(BSRenderManager::GetSingleton()->swapChain);
+    */
     return true;
   }
 
   bool EndMain() override
   {
-    // inputService.reset();
-    renderSystem.reset();
-    overlayService.reset();
+    //renderSystem.reset();
+    //overlayService.reset();
     return true;
   }
 
   void Update() override {}
 
-  std::shared_ptr<OverlayService> overlayService;
-  // std::shared_ptr<InputService> inputService;
+  /*std::shared_ptr<OverlayService> overlayService;
   std::shared_ptr<RenderSystemD3D11> renderSystem;
   std::shared_ptr<MyInputListener> myInputListener;
-  std::shared_ptr<InputConverter> inputConverter;
+  std::shared_ptr<InputConverter> inputConverter;*/
 };
 
 DEFINE_DLL_ENTRY_INITIALIZER(SkyrimPlatformApp);
