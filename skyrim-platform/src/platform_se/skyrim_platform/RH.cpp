@@ -9,9 +9,6 @@
 #include <RE/InputEvent.h>
 #include <RE/ButtonEvent.h>
 
-//#include <RE/PlayerControls.h>
-//#include <REL/Relocation.h>
-
 namespace RE {
 	class ScreenshotHandler : public MenuEventHandler {
 	public:
