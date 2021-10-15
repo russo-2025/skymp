@@ -5,9 +5,28 @@
 #include <RE/UI.h>
 #include <RE/IMenu.h>
 #include <RE/UIMessage.h>
-#include <RE/Console.h>
+#include <RE/ConsoleLog.h>
+#include <RE/InputEvent.h>
+#include <RE/ButtonEvent.h>
+
+//#include <RE/PlayerControls.h>
+//#include <REL/Relocation.h>
 
 namespace RE {
+	class ScreenshotHandler : public MenuEventHandler {
+	public:
+		inline static constexpr auto RTTI = RTTI_MenuEventHandler;
+
+		ScreenshotHandler() = default;
+		virtual ~ScreenshotHandler() = default;
+
+		virtual bool CanProcess(InputEvent* a_event) = 0;
+		virtual bool ProcessKinect(KinectEvent* a_event);
+		virtual bool ProcessThumbstick(ThumbstickEvent* a_event);
+		virtual bool ProcessMouseMove(MouseMoveEvent* a_event);
+		virtual bool ProcessButton(ButtonEvent* a_event);
+	};
+
 	class ConsoleOpenHandler : public MenuEventHandler {
 	public:
 		inline static constexpr auto RTTI = RTTI_MenuEventHandler;
@@ -25,6 +44,35 @@ namespace RE {
 		UInt8  unk0D;		// 0D
 		UInt16 pad0E;		// 0E
 	};
+
+	//---
+	//class ButtonEvent;
+	//class InputEvent;
+	class MouseMoveEvent;
+	class PlayerControlsData;
+	class ThumbstickEvent;
+
+	class PlayerInputHandler
+	{
+	public:
+		inline static constexpr auto RTTI = RTTI_PlayerInputHandler;
+
+		virtual ~PlayerInputHandler() = default;  // 00
+
+		virtual bool CanProcess(InputEvent* a_event) = 0;                                      // 01
+		virtual void ProcessThumbstick(ThumbstickEvent* a_event, PlayerControlsData* a_data) = 0;  // 02 - { return; }
+		virtual void ProcessMouseMove(MouseMoveEvent* a_event, PlayerControlsData* a_data) = 0;    // 03 - { return; }
+		virtual void ProcessButton(ButtonEvent* a_event, PlayerControlsData* a_data) = 0;          // 04 - { return; }
+
+		[[nodiscard]] bool IsInputEventHandlingEnabled() const;
+		void               SetInputEventHandlingEnabled(bool a_enabled);
+
+		// members
+		bool          inputEventHandlingEnabled;  // 08
+		std::uint8_t  pad09;                      // 09
+		std::uint16_t pad0A;                      // 0A
+		std::uint32_t pad0C;                      // 0C
+	};
 }
 
 class EmptyEventHandler : public RE::MenuEventHandler {
@@ -34,6 +82,35 @@ public:
 	bool ProcessThumbstick(RE::ThumbstickEvent * e) override { return false; }
 	bool ProcessMouseMove(RE::MouseMoveEvent * e) override { return false; }
 	bool ProcessButton(RE::ButtonEvent * e) override { return false; }
+};
+
+class WrapperScreenShotEventHandler : public RE::MenuEventHandler {
+public:
+	WrapperScreenShotEventHandler::WrapperScreenShotEventHandler(RE::MenuEventHandler* originalHandler_) : originalHandler(originalHandler_) {
+		RE::ConsoleLog::GetSingleton()->Print("TestEventHandler::TestEventHandler `%p`", originalHandler_);
+	}
+
+	bool CanProcess(RE::InputEvent* e) override {
+		if (e->eventType == RE::INPUT_EVENT_TYPE::kButton) {
+			if (strcmp(e->QUserEvent().c_str(), "Screenshot") == 0) {
+				return originalHandler->CanProcess(e);
+			}
+		}
+
+		return false;
+	}
+	bool ProcessKinect(RE::KinectEvent* e) override { return false; }
+	bool ProcessThumbstick(RE::ThumbstickEvent* e) override {return false; }
+	bool ProcessMouseMove(RE::MouseMoveEvent* e) override { return false; }
+	bool ProcessButton(RE::ButtonEvent* e) override {
+		if (strcmp(e->QUserEvent().c_str(), "Screenshot") == 0) {
+			return originalHandler->ProcessButton(e);
+		}
+
+		return false;
+	}
+
+	RE::MenuEventHandler* originalHandler;
 };
 
 class EmptyMenu : public RE::IMenu {
@@ -50,9 +127,10 @@ public:
 };
 
 void DisableConsole() {
+
 	auto mc = RE::MenuControls::GetSingleton();
 	auto ui = RE::UI::GetSingleton();
-
+	
 	ui->menuMap.insert_or_assign({ "Console", {
 		nullptr,
 		[]()-> RE::IMenu* { return (RE::IMenu*)new EmptyMenu(); }
@@ -61,4 +139,12 @@ void DisableConsole() {
 	mc->RemoveHandler((RE::MenuEventHandler*)mc->consoleOpenHandler.get());
 	mc->consoleOpenHandler = RE::BSTSmartPointer<RE::ConsoleOpenHandler>((RE::ConsoleOpenHandler*)(RE::MenuEventHandler*)new EmptyEventHandler);
 	mc->RemoveHandler((RE::MenuEventHandler*)mc->consoleOpenHandler.get());
+
+	RE::MenuEventHandler* originalHandler = (RE::MenuEventHandler*)mc->screenshotHandler.get();
+	RE::ConsoleLog::GetSingleton()->Print("DisableConsole `%p`", originalHandler, originalHandler);
+	RE::MenuEventHandler* handler = (RE::MenuEventHandler*)new WrapperScreenShotEventHandler(originalHandler);
+
+	mc->RemoveHandler(originalHandler);
+	//mc->screenshotHandler = RE::BSTSmartPointer<RE::ScreenshotHandler>((RE::ScreenshotHandler*)handler); // wtf?? при замене этого обработчика проскакивают события ScreenShot и Multi-ScreenShot
+	mc->AddHandler(handler);
 }
