@@ -98,7 +98,7 @@ void JsTick(bool gameFunctionsAvailable)
     bool scriptsUpdated = monitor->Updated();
     monitor->ThrowOnceIfHasError();
 
-    if (tickId == 1 || scriptsUpdated) {
+    if (tickId == 1/* || scriptsUpdated*/) {
       ConsoleApi::Clear();
       EventsApi::Clear();
       g_taskQueue.Clear();
