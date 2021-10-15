@@ -52,6 +52,7 @@
 #include <thread>
 #include <ui/MyChromiumApp.h>
 #include <ui/ProcessMessageListener.h>
+#include "RH.h"
 
 #define PLUGIN_NAME "SkyrimPlatform"
 #define PLUGIN_VERSION 0
@@ -82,6 +83,7 @@ void JsTick(bool gameFunctionsAvailable)
     if (!helloSaid) {
       helloSaid = true;
       console->Print("Hello SE");
+      DisableConsole();
     }
   }
   try {
