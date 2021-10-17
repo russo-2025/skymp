@@ -2,7 +2,7 @@ import * as sp from "skyrimPlatform";
 import { localIdToRemoteId } from "./view";
 
 export interface Hit {
-  aggressor: number;
+  agressor: number;
   isBashAttack: boolean;
   isHitBlocked: boolean;
   isPowerAttack: boolean;
@@ -14,7 +14,7 @@ export interface Hit {
 
 export const getHitData = (e: sp.HitEvent): Hit => {
   const hitData: Hit = {
-    aggressor: localIdToRemoteId(e.aggressor.getFormID()),
+    agressor: localIdToRemoteId(e.agressor.getFormID()),
     isBashAttack: e.isBashAttack,
     isHitBlocked: e.isHitBlocked,
     isPowerAttack: e.isPowerAttack,

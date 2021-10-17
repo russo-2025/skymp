@@ -202,7 +202,7 @@ export interface ContainerChangedEvent {
 
 export interface HitEvent {
   target: ObjectReference;
-  aggressor: ObjectReference;
+  agressor: ObjectReference;
   source: Form;
   projectile: Projectile;
   isPowerAttack: boolean;
