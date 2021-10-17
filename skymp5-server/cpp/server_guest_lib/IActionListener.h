@@ -1,6 +1,5 @@
 #pragma once
 #include "ConsoleCommands.h"
-#include "HitData.h"
 #include "Inventory.h"
 #include "MpActor.h"             // Look
 #include "NetworkingInterface.h" // UserId, PacketData
@@ -97,10 +96,6 @@ public:
                               const float healthPercentage,
                               const float magickaPercentage,
                               const float staminaPercentage)
-  {
-  }
-
-  virtual void OnHit(const RawMessageData& rawMsgData, const HitData& hitData)
   {
   }
 };

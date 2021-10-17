@@ -66,9 +66,6 @@ public:
                       const float magickaPercentage,
                       const float staminaPercentage) override;
 
-  void OnHit(const RawMessageData& rawMsgData,
-             const HitData& hitData) override;
-
 private:
   // Returns user's actor if exists
   MpActor* SendToNeighbours(uint32_t idx,

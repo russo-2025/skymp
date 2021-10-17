@@ -19,6 +19,5 @@ enum class MsgType : int64_t
   CraftItem = 13,
   Host = 14,
   CustomEvent = 15,
-  ChangeValues = 16,
-  OnHit = 17
+  ChangeValues = 16
 };
