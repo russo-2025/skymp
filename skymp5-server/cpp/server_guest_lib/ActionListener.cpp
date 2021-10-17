@@ -4,7 +4,6 @@
 #include "EspmGameObject.h"
 #include "Exceptions.h"
 #include "FindRecipe.h"
-#include "GetBaseActorValues.h"
 #include "MovementValidation.h"
 #include "MsgType.h"
 #include "PapyrusObjectReference.h"
@@ -570,27 +569,6 @@ float CalculateDamage(MpActor& actor, const HitData& hitData,
   } else {
     throw std::runtime_error("Failed to read weapon data");
   }
-
-  return weaponData->damage;
-}
-
-float CalculateCurrentHealthPercentage(const MpActor* actor, float damage,
-                                       float healthPercentage)
-{
-  BaseActorValues baseActorValues;
-  auto* parent = actor->GetParent();
-  if (parent && parent->HasEspm()) {
-    auto& espm = parent->GetEspm();
-
-    uint32_t baseId = actor->GetBaseId();
-    auto raceIdOverride =
-      actor->GetAppearance() ? actor->GetAppearance()->raceId : 0;
-    baseActorValues = GetBaseActorValues(espm, baseId, raceIdOverride);
-  }
-
-  float damagePercentage = damage / baseActorValues.health;
-  float currentHealthPercentage = healthPercentage - damagePercentage;
-  return currentHealthPercentage;
 }
 }
 
@@ -613,29 +591,5 @@ void ActionListener::OnHit(const RawMessageData& rawMsgData,
   auto& espmCache = partOne.worldState.GetEspmCache();
   const auto damage = CalculateDamage(*actor, hitData, espmCache);
 
-  auto& targetActor = partOne.worldState.GetFormAt<MpActor>(hitData.target);
-
-  MpChangeForm targetForm = targetActor.GetChangeForm();
-  float healthPercentage = targetForm.healthPercentage;
-  float magickaPercentage = targetForm.magickaPercentage;
-  float staminaPercentage = targetForm.staminaPercentage;
-
-  float currentHealthPercentage =
-    CalculateCurrentHealthPercentage(actor, damage, healthPercentage);
-
-  std::string s;
-  s += Networking::MinPacketId;
-  s += nlohmann::json{
-    { "t", MsgType::ChangeValues },
-    { "data",
-      { "health", currentHealthPercentage },
-      { "magicka", magickaPercentage },
-      { "stamina", staminaPercentage } }
-  }.dump();
-
-  targetActor.SendToUser(s.data(), s.size(), true);
-  targetActor.SetPercentages(currentHealthPercentage, magickaPercentage,
-                             staminaPercentage);
-  auto now = std::chrono::steady_clock::now();
-  targetActor.SetLastAttributesPercentagesUpdate(now);
+  // TODO(#276): Send a packet
 }
