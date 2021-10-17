@@ -114,9 +114,8 @@ void ActionListener::OnUpdateAnimation(const RawMessageData& rawMsgData,
   SendToNeighbours(idx, rawMsgData);
 }
 
-void ActionListener::OnUpdateAppearance(const RawMessageData& rawMsgData,
-                                        uint32_t idx,
-                                        const Appearance& appearance)
+void ActionListener::OnUpdateLook(const RawMessageData& rawMsgData,
+                                  uint32_t idx, const Look& look)
 { // TODO: validate
 
   MpActor* actor = partOne.serverState.ActorByUser(rawMsgData.userId);
@@ -124,7 +123,7 @@ void ActionListener::OnUpdateAppearance(const RawMessageData& rawMsgData,
     return;
 
   actor->SetRaceMenuOpen(false);
-  actor->SetAppearance(&appearance);
+  actor->SetLook(&look);
   SendToNeighbours(idx, rawMsgData, true);
 }
 

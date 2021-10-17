@@ -1,4 +1,4 @@
-#include "Appearance.h"
+#include "Look.h"
 #include "JsonUtils.h"
 
 Tint Tint::FromJson(simdjson::dom::element& j)
@@ -17,21 +17,21 @@ Tint Tint::FromJson(simdjson::dom::element& j)
   return res;
 }
 
-Appearance Appearance::FromJson(const nlohmann::json& j)
+Look Look::FromJson(const nlohmann::json& j)
 {
   simdjson::dom::parser p;
   simdjson::dom::element parsed = p.parse(j.dump());
   return FromJson(parsed);
 }
 
-Appearance Appearance::FromJson(simdjson::dom::element& j)
+Look Look::FromJson(simdjson::dom::element& j)
 {
   static const JsonPointer isFemale("isFemale"), raceId("raceId"),
     weight("weight"), skinColor("skinColor"), hairColor("hairColor"),
     headpartIds("headpartIds"), headTextureSetId("headTextureSetId"),
     options("options"), presets("presets"), name("name"), tints("tints");
 
-  Appearance res;
+  Look res;
   ReadEx(j, isFemale, &res.isFemale);
   ReadEx(j, raceId, &res.raceId);
   ReadEx(j, weight, &res.weight);
@@ -62,7 +62,7 @@ Appearance Appearance::FromJson(simdjson::dom::element& j)
   return res;
 }
 
-std::string Appearance::ToJson() const
+std::string Look::ToJson() const
 {
   auto j = nlohmann::json{ { "isFemale", isFemale },
                            { "raceId", raceId },

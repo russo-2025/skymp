@@ -11,10 +11,8 @@ import {
 import { Movement } from "./movement";
 import { applyWeapDrawn } from "./movementApply";
 
-export interface Animation {
-  animEventName: string;
-  numChanges: number;
-}
+import * as structures from "../../lib/structures/animation";
+export type Animation = structures.Animation;
 
 export interface AnimationApplyState {
   lastNumChanges: number;
@@ -86,7 +84,7 @@ export class AnimationSource {
   constructor(refr: ObjectReference) {
     this.refrId = refr.getFormID();
     hooks.sendAnimationEvent.add({
-      enter: () => { },
+      enter: () => {},
       leave: (ctx) => {
         if (ctx.selfId !== this.refrId) return;
         if (!ctx.animationSucceeded) return;
@@ -190,6 +188,6 @@ export const setupHooks = (): void => {
         i === -1 ? (ctx.animEventName = "") : allowedIdles.splice(i, 1);
       }
     },
-    leave: () => { },
+    leave: () => {},
   });
 };

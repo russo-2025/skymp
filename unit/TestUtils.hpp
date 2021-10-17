@@ -36,8 +36,8 @@ static const auto jMovement =
                       { "isBlocking", false },
                       { "isWeapDrawn", false } } } };
 
-static const auto jAppearance = nlohmann::json{
-  { "t", MsgType::UpdateAppearance },
+static const auto jLook = nlohmann::json{
+  { "t", MsgType::UpdateLook },
   { "idx", 0 },
   { "data",
     { { "isFemale", false },

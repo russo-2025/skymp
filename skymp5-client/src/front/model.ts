@@ -1,8 +1,8 @@
-import { Movement } from "./movement";
-import { Animation } from "./animation";
-import { Appearance } from "./appearance";
-import { Equipment } from "./equipment";
-import { Inventory } from "./inventory";
+import { Movement } from "./components/movement";
+import { Animation } from "./components/animation";
+import { Look } from "./components/look";
+import { Equipment } from "./components/equipment";
+import { Inventory } from "./components/inventory";
 
 export interface FormModel {
   idx?: number;
@@ -11,8 +11,8 @@ export interface FormModel {
   movement?: Movement;
   animation?: Animation;
   numMovementChanges?: number;
-  appearance?: Appearance;
-  numAppearanceChanges?: number;
+  look?: Look;
+  numLookChanges?: number;
   equipment?: Equipment;
   isHarvested?: boolean;
   isOpen?: boolean;

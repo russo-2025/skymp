@@ -1206,7 +1206,7 @@ void ScampServer::RegisterChakraApi(std::shared_ptr<JsEngine> chakraEngine)
         res = JsValue(refr.IsOpen());
       } else if (propertyName == "appearance") {
         if (auto actor = dynamic_cast<MpActor*>(&refr)) {
-          auto& dump = actor->GetAppearanceAsJson();
+          auto& dump = actor->GetLookAsJson();
           if (dump.size() > 0) {
             res = ParseJsonChakra(dump);
           }
@@ -1287,12 +1287,12 @@ void ScampServer::RegisterChakraApi(std::shared_ptr<JsEngine> chakraEngine)
         refr.SetOpen(newValue.get<bool>());
       } else if (propertyName == "appearance") {
         if (auto actor = dynamic_cast<MpActor*>(&refr)) {
-          // TODO: Live update of appearance
+          // TODO: Live update of look
           if (newValue.is_object()) {
-            auto appearance = Appearance::FromJson(newValue);
-            actor->SetAppearance(&appearance);
+            auto look = Look::FromJson(newValue);
+            actor->SetLook(&look);
           } else {
-            actor->SetAppearance(nullptr);
+            actor->SetLook(nullptr);
           }
         }
       } else if (propertyName == "inventory") {

@@ -15,11 +15,11 @@ import {
   localIdToRemoteId,
   remoteIdToLocalId,
 } from "./view";
-import { getMovement } from "./movement";
-import { getAppearance } from "./appearance";
-import { AnimationSource, Animation, setupHooks } from "./animation";
-import { getEquipment } from "./equipment";
-import { getDiff, getInventory, Inventory } from "./inventory";
+import { getMovement } from "./components/movement";
+import { getLook } from "./components/look";
+import { AnimationSource, Animation, setupHooks } from "./components/animation";
+import { getEquipment } from "./components/equipment";
+import { getDiff, getInventory, Inventory } from "./components/inventory";
 import { MsgType, HostStartMessage, HostStopMessage } from "./messages";
 import { MsgHandler } from "./msgHandler";
 import { ModelSource } from "./modelSource";
@@ -32,8 +32,8 @@ import * as deathSystem from "./deathSystem";
 import { setUpConsoleCommands } from "./console";
 import { nextHostAttempt } from "./hostAttempts";
 import * as updateOwner from "./updateOwner";
-import { ActorValues, getActorValues } from "./actorvalues";
-import { Hit, getHitData } from "./hit";
+import { ActorValues, getActorValues } from "./components/actorvalues";
+import { Hit, getHitData } from "./components/hit";
 
 interface AnyMessage {
   type?: string;
@@ -404,7 +404,7 @@ export class SkympClient {
     }
   }
 
-  private sendAppearance(_refrId?: number) {
+  private sendLook(_refrId?: number) {
     if (_refrId) return;
     const shown = Ui.isMenuOpen("RaceSex Menu");
     if (shown != this.isRaceSexMenuShown) {
@@ -412,9 +412,9 @@ export class SkympClient {
       if (!shown) {
         printConsole("Exited from race menu");
 
-        const appearance = getAppearance(Game.getPlayer() as Actor);
+        const look = getLook(Game.getPlayer() as Actor);
         this.sendTarget.send(
-          { t: MsgType.UpdateAppearance, data: appearance, _refrId },
+          { t: MsgType.UpdateLook, data: look, _refrId },
           true
         );
       }
@@ -485,7 +485,7 @@ export class SkympClient {
     targets.forEach((target) => {
       this.sendMovement(target);
       this.sendAnimation(target);
-      this.sendAppearance(target);
+      this.sendLook(target);
       this.sendEquipment(target);
       this.sendActorValuePercentage(target);
     });

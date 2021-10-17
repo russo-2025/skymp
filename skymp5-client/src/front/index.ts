@@ -1,3 +1,6 @@
+import { SkympClient } from "./skympClient";
+import * as browser from "./browser";
+import * as loadGameManager from "./loadGameManager";
 import {
   Game,
   Utility,
@@ -6,11 +9,7 @@ import {
   GlobalVariable,
   ObjectReference,
   Weather,
-  printConsole,
 } from "skyrimPlatform";
-import { SkympClient } from "./skympClient";
-import * as browser from "./browser";
-import * as loadGameManager from "./loadGameManager";
 import { verifyVersion } from "./version";
 import { updateWc } from "./worldCleaner";
 
@@ -65,9 +64,9 @@ on("update", () => {
   const gameHour = GlobalVariable.from(Game.getFormEx(gameHourId)) as GlobalVariable;
   gameHour.setValue(
     d.getUTCHours() +
-    d.getUTCMinutes() / 60 +
-    d.getUTCSeconds() / 60 / 60 +
-    d.getUTCMilliseconds() / 60 / 60 / 1000
+      d.getUTCMinutes() / 60 +
+      d.getUTCSeconds() / 60 / 60 +
+      d.getUTCMilliseconds() / 60 / 60 / 1000
   );
 
   const gameDay = GlobalVariable.from(Game.getFormEx(gameDayId)) as GlobalVariable;

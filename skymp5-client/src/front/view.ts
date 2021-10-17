@@ -17,15 +17,18 @@ import {
 } from "skyrimPlatform";
 import * as sp from "skyrimPlatform";
 
-import { applyMovement, NiPoint3 } from "./movement";
-import { applyAnimation, setDefaultAnimsDisabled } from "./animation";
-import { Appearance, applyAppearance, applyTints } from "./appearance";
-import { applyEquipment, isBadMenuShown } from "./equipment";
+import { applyMovement, NiPoint3 } from "./components/movement";
+import {
+  applyAnimation,
+  setDefaultAnimsDisabled,
+} from "./components/animation";
+import { Look, applyLook, applyTints } from "./components/look";
+import { applyEquipment, isBadMenuShown } from "./components/equipment";
 import { modWcProtection } from "./worldCleaner";
-import { applyInventory } from "./inventory";
+import { applyInventory } from "./components/inventory";
 import { tryHost } from "./hostAttempts";
-import { getMovement } from "./movementGet";
-import { Movement } from "./movement";
+import { getMovement } from "./components/movementGet";
+import { Movement } from "../lib/structures/movement";
 import * as deathSystem from "./deathSystem";
 
 let gCrosshairRefId = 0;
@@ -131,7 +134,7 @@ function dealWithRef(ref: ObjectReference, base: Form): void {
 
 class SpawnProcess {
   constructor(
-    appearance: Appearance,
+    look: Look,
     pos: NiPoint3,
     refrId: number,
     private callback: () => void
@@ -139,19 +142,19 @@ class SpawnProcess {
     const refr = ObjectReference.from(Game.getFormEx(refrId));
     if (!refr || refr.getFormID() !== refrId) return;
 
-    refr.setPosition(...pos).then(() => this.enable(appearance, refrId));
+    refr.setPosition(...pos).then(() => this.enable(look, refrId));
   }
 
-  private enable(appearance: Appearance, refrId: number) {
+  private enable(look: Look, refrId: number) {
     const refr = ObjectReference.from(Game.getFormEx(refrId));
     if (!refr || refr.getFormID() !== refrId) return;
 
     const ac = Actor.from(refr);
-    if (appearance && ac) applyTints(ac, appearance);
-    refr.enable(false).then(() => this.resurrect(appearance, refrId));
+    if (look && ac) applyTints(ac, look);
+    refr.enable(false).then(() => this.resurrect(look, refrId));
   }
 
-  private resurrect(appearance: Appearance, refrId: number) {
+  private resurrect(look: Look, refrId: number) {
     const refr = ObjectReference.from(Game.getFormEx(refrId));
     if (!refr || refr.getFormID() !== refrId) return;
 
@@ -169,19 +172,22 @@ const getDefaultEquipState = () => {
   return { lastNumChanges: 0, isBadMenuShown: false, lastEqMoment: 0 };
 };
 
-interface AppearanceState {
+interface LookState {
   lastNumChanges: number;
-  appearance: Appearance | null;
+  look: Look | null;
 }
 
-const getDefaultAppearanceState = (): AppearanceState => {
-  return { lastNumChanges: 0, appearance: null };
+const getDefaultLookState = (): LookState => {
+  return { lastNumChanges: 0, look: null };
 };
 
 const undefinedRefr: ObjectReference = undefined as unknown as ObjectReference;
 const unknownValue: unknown = undefined;
 const undefinedFormModel: FormModel = undefined as unknown as FormModel;
-const undefinedObject: Record<string, unknown> = undefined as unknown as Record<string, unknown>;
+const undefinedObject: Record<string, unknown> = undefined as unknown as Record<
+  string,
+  unknown
+>;
 const undefinedView: FormViewArray = undefined as unknown as FormViewArray;
 const ctx = {
   refr: undefinedRefr,
@@ -206,7 +212,7 @@ const ctx = {
 };
 
 export class FormView implements View<FormModel> {
-  constructor(private remoteRefrId?: number) { }
+  constructor(private remoteRefrId?: number) {}
 
   update(model: FormModel): void {
     // Other players mutate into PC clones when moving to another location
@@ -222,7 +228,7 @@ export class FormView implements View<FormModel> {
         this.lastWorldOrCell = model.movement.worldOrCell;
         this.destroy();
         this.refrId = 0;
-        this.appearanceBasedBaseId = 0;
+        this.lookBasedBaseId = 0;
         return;
       }
     }
@@ -242,15 +248,15 @@ export class FormView implements View<FormModel> {
       }
     }
 
-    // Apply appearance before base form selection to prevent double-spawn
-    if (model.appearance) {
+    // Apply look before base form selection to prevent double-spawn
+    if (model.look) {
       if (
-        !this.appearanceState.appearance ||
-        model.numAppearanceChanges !== this.appearanceState.lastNumChanges
+        !this.lookState.look ||
+        model.numLookChanges !== this.lookState.lastNumChanges
       ) {
-        this.appearanceState.appearance = model.appearance;
-        this.appearanceState.lastNumChanges = model.numAppearanceChanges as number;
-        this.appearanceBasedBaseId = 0;
+        this.lookState.look = model.look;
+        this.lookState.lastNumChanges = model.numLookChanges as number;
+        this.lookBasedBaseId = 0;
       }
     }
 
@@ -270,7 +276,7 @@ export class FormView implements View<FormModel> {
     } else {
       const base =
         getFormEx(+(model.baseId as number)) ||
-        getFormEx(this.getAppearanceBasedBase());
+        getFormEx(this.getLookBasedBase());
       if (!base) return;
 
       let refr = ObjectReference.from(Game.getFormEx(this.refrId));
@@ -304,22 +310,22 @@ export class FormView implements View<FormModel> {
 
         this.ready = false;
         new SpawnProcess(
-          this.appearanceState.appearance as Appearance,
+          this.lookState.look as Look,
           model.movement
             ? model.movement.pos
             : [
-              (Game.getPlayer() as Actor).getPositionX(),
-              (Game.getPlayer() as Actor).getPositionY(),
-              (Game.getPlayer() as Actor).getPositionZ(),
-            ],
+                (Game.getPlayer() as Actor).getPositionX(),
+                (Game.getPlayer() as Actor).getPositionY(),
+                (Game.getPlayer() as Actor).getPositionZ(),
+              ],
           refr.getFormID(),
           () => {
             this.ready = true;
             this.spawnMoment = Date.now();
           }
         );
-        if (model.appearance && model.appearance.name)
-          refr.setDisplayName("" + model.appearance.name, true);
+        if (model.look && model.look.name)
+          refr.setDisplayName("" + model.look.name, true);
       }
       this.refrId = (refr as ObjectReference).getFormID();
     }
@@ -500,7 +506,7 @@ export class FormView implements View<FormModel> {
 
       if (
         +(model.numMovementChanges as number) !==
-        this.movState.lastNumChanges ||
+          this.movState.lastNumChanges ||
         Date.now() - this.movState.lastApply > 2000
       ) {
         this.movState.lastApply = Date.now();
@@ -524,7 +530,7 @@ export class FormView implements View<FormModel> {
     }
     if (model.animation) applyAnimation(refr, model.animation, this.animState);
 
-    if (model.appearance) {
+    if (model.look) {
       const actor = Actor.from(refr);
       if (actor && !gPcInJumpState) {
         if (gPcWorldOrCellId) {
@@ -593,12 +599,12 @@ export class FormView implements View<FormModel> {
     }
   }
 
-  private getAppearanceBasedBase(): number {
-    const base = ActorBase.from(Game.getFormEx(this.appearanceBasedBaseId));
-    if (!base && this.appearanceState.appearance) {
-      this.appearanceBasedBaseId = applyAppearance(this.appearanceState.appearance).getFormID();
+  private getLookBasedBase(): number {
+    const base = ActorBase.from(Game.getFormEx(this.lookBasedBaseId));
+    if (!base && this.lookState.look) {
+      this.lookBasedBaseId = applyLook(this.lookState.look).getFormID();
     }
-    return this.appearanceBasedBaseId;
+    return this.lookBasedBaseId;
   }
 
   getLocalRefrId(): number {
@@ -618,9 +624,9 @@ export class FormView implements View<FormModel> {
     lastRehost: 0,
     everApplied: false,
   };
-  private appearanceState = getDefaultAppearanceState();
+  private lookState = getDefaultLookState();
   private eqState = getDefaultEquipState();
-  private appearanceBasedBaseId = 0;
+  private lookBasedBaseId = 0;
   private isOnScreen = false;
   private lastPcWorldOrCell = 0;
   private lastWorldOrCell = 0;

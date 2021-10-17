@@ -21,30 +21,10 @@ import {
   ActorBase,
 } from "skyrimPlatform";
 
-export interface Extra {
-  health?: number;
-  enchantmentId?: number;
-  maxCharge?: number;
-  removeEnchantmentOnUnequip?: boolean;
-  chargePercent?: number;
-  name?: string;
-  soul?: 0 | 1 | 2 | 3 | 4 | 5;
-  poisonId?: number;
-  poisonCount?: number;
-  worn?: boolean;
-  wornLeft?: boolean;
-}
-
-export interface BasicEntry {
-  baseId: number;
-  count: number;
-}
-
-export type Entry = BasicEntry & Extra;
-
-export interface Inventory {
-  entries: Entry[];
-}
+import * as structures from "../../lib/structures/inventory";
+export type Inventory = structures.Inventory;
+export type Entry = structures.Entry;
+export type BasicEntry = structures.BasicEntry;
 
 // 'loxsword (Legendary)' => 'loxsword'
 const getRealName = (s?: string): string => {
@@ -62,10 +42,10 @@ const cropName = (s?: string): string => {
   const max = 128;
   return s.length >= max
     ? s
-      .split("")
-      .filter((x, i) => i < max)
-      .join("")
-      .concat("...")
+        .split("")
+        .filter((x, i) => i < max)
+        .join("")
+        .concat("...")
     : s;
 };
 
