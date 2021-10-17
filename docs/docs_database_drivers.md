@@ -44,8 +44,8 @@ A special database driver is used to move from one type of database to another o
   // ...
   "databaseDriver": "migration",
   "databaseOld": {
-    "databaseDriver": "file",
-    "databaseName": "world"
+    "databaseDriver": "sqlite",
+    "databaseName": "world.sqlite"
   },
   "databaseNew": {
     "databaseDriver": "mongodb"
