@@ -95,10 +95,9 @@ public:
 };
 
 void DisableConsole() {
-
 	auto mc = RE::MenuControls::GetSingleton();
 	auto ui = RE::UI::GetSingleton();
-	
+
 	ui->menuMap.insert_or_assign({ "Console", {
 		nullptr,
 		[]()-> RE::IMenu* { return (RE::IMenu*)new EmptyMenu(); }
@@ -106,7 +105,7 @@ void DisableConsole() {
 
 	mc->RemoveHandler((RE::MenuEventHandler*)mc->consoleOpenHandler.get());
 	mc->consoleOpenHandler = RE::BSTSmartPointer<RE::ConsoleOpenHandler>((RE::ConsoleOpenHandler*)(RE::MenuEventHandler*)new EmptyEventHandler);
-	mc->RemoveHandler((RE::MenuEventHandler*)mc->consoleOpenHandler.get());
+	mc->AddHandler((RE::MenuEventHandler*)mc->consoleOpenHandler.get());
 
 	RE::MenuEventHandler* originalHandler = (RE::MenuEventHandler*)mc->screenshotHandler.get();
 	RE::ConsoleLog::GetSingleton()->Print("DisableConsole `%p`", originalHandler, originalHandler);
