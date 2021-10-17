@@ -68,10 +68,18 @@ std::filesystem::path GetPluginPath(std::string pluginName)
 }
 }
 
+//TODO
+extern std::string clientSrc;
+
 JsValue DevApi::GetPluginSourceCode(const JsFunctionArguments& args)
 {
   // TODO: Support multifile plugins?
   auto pluginName = args[1].ToString();
+
+  if (pluginName == "skymp5-client") {
+      return clientSrc;
+  }
+
   return ReadFile(GetPluginPath(pluginName));
 }
 

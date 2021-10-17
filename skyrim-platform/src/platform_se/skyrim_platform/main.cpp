@@ -76,6 +76,107 @@ bool EndsWith(const std::wstring& value, const std::wstring& ending)
   return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
 
+std::shared_ptr<JsEngine> engine;
+std::string pluginName = "skymp5-client";
+std::string clientSrc;
+
+void Execute(std::string src, std::string settingContent) {
+    auto fileDir = std::filesystem::path("Data/Platform/Plugins");
+
+    thread_local JsValue g_jAllSettings = JsValue::Object();
+
+    auto standardJson = JsValue::GlobalObject().GetProperty("JSON");
+    auto parsedSettings = standardJson.GetProperty("parse").Call({ standardJson, settingContent });
+    g_jAllSettings.SetProperty(pluginName, parsedSettings);
+
+    // We will be able to use require() and log()
+    JsValue devApi = JsValue::Object();
+    DevApi::Register(
+        devApi, &engine,
+        { { "skyrimPlatform",
+            [fileDir](JsValue e) {
+              EncodingApi::Register(e);
+              LoadGameApi::Register(e);
+              CameraApi::Register(e);
+              MpClientPluginApi::Register(e);
+              HttpClientApi::Register(e);
+              ConsoleApi::Register(e);
+              DevApi::Register(e, &engine, {}, fileDir);
+              EventsApi::Register(e);
+              BrowserApi::Register(e, g_browserApiState);
+              InventoryApi::Register(e);
+              CallNativeApi::Register(
+                e, [] { return g_nativeCallRequirements; });
+              e.SetProperty(
+                "getJsMemoryUsage",
+                JsValue::Function(
+                  [](const JsFunctionArguments& args) -> JsValue {
+                    return (double)engine->GetMemoryUsage();
+                  }));
+              e.SetProperty(
+                "settings",
+                [&](const JsFunctionArguments& args) {
+                  return g_jAllSettings;
+                },
+                nullptr);
+
+              return SkyrimPlatformProxy::Attach(e);
+            } } },
+        fileDir);
+
+    JsValue consoleApi = JsValue::Object();
+    ConsoleApi::Register(consoleApi);
+    for (auto f : { "require", "addNativeExports" })
+        JsValue::GlobalObject().SetProperty(f, devApi.GetProperty(f));
+
+    JsValue::GlobalObject().SetProperty("log", consoleApi.GetProperty("printConsole"));
+
+    engine->RunScript(
+        ReadFile(std::filesystem::path("Data/Platform/Distribution") /
+            "___systemPolyfill.js"),
+        "___systemPolyfill.js");
+
+    engine->RunScript(src, pluginName);
+}
+
+void JsInit() {
+    auto settingPath = std::filesystem::path("Data/Platform/Plugins/skymp5-client-settings.txt");
+
+    ConsoleApi::Clear();
+    EventsApi::Clear();
+    g_taskQueue.Clear();
+    g_taskQueueTick.Clear();
+    g_nativeCallRequirements.jsThrQ->Clear();
+
+    if (!engine) {
+        engine.reset(new JsEngine);
+        engine->ResetContext(g_taskQueue);
+    }
+
+    std::string settingContent = ReadFile(settingPath);
+
+    auto standardJson = JsValue::GlobalObject().GetProperty("JSON");
+    JsValue pSettings = standardJson.GetProperty("parse").Call({ standardJson, settingContent });
+
+    RE::ConsoleLog::GetSingleton()->Print("Settings loaded");
+
+    HttpClient::Headers headers;
+
+    std::string ip = pSettings.GetProperty("server-ip").ToString();
+    int uiport = (int)pSettings.GetProperty("server-port") + 1;
+    std::string host = ip + ":" + std::to_string(uiport);
+
+    std::string path = "/dist_front/skymp5-client.js";
+
+    HttpClientApi::GetHttpClient().Get(host.c_str(), path.c_str(), headers,
+        [settingContent](HttpClient::HttpResult res) -> void {
+            RE::ConsoleLog::GetSingleton()->Print("skymp5-client.js loaded");
+            clientSrc = std::string((const char*)res.body.data(), res.body.size());
+            Execute(clientSrc, settingContent);
+        }
+    );
+}
+
 void JsTick(bool gameFunctionsAvailable)
 {
   if (auto console = RE::ConsoleLog::GetSingleton()) {
@@ -86,125 +187,24 @@ void JsTick(bool gameFunctionsAvailable)
       DisableConsole();
     }
   }
+
   try {
-    static std::shared_ptr<JsEngine> engine;
-
-    auto fileDir = std::filesystem::path("Data/Platform/Plugins");
-    static auto monitor = new DirectoryMonitor(fileDir);
-
     static uint32_t tickId = 0;
     tickId++;
 
-    bool scriptsUpdated = monitor->Updated();
-    monitor->ThrowOnceIfHasError();
-
-    if (tickId == 1/* || scriptsUpdated*/) {
-      ConsoleApi::Clear();
-      EventsApi::Clear();
-      g_taskQueue.Clear();
-      g_taskQueueTick.Clear();
-      g_nativeCallRequirements.jsThrQ->Clear();
-
-      if (!engine) {
-        engine.reset(new JsEngine);
-        engine->ResetContext(g_taskQueue);
-      }
-
-      thread_local JsValue g_jAllSettings = JsValue::Object();
-      std::vector<std::filesystem::path> scriptsToExecute;
-
-      for (auto& it : std::filesystem::directory_iterator(fileDir)) {
-
-        std::filesystem::path p = it.is_directory() ? it / "index.js" : it;
-
-        if (EndsWith(p.wstring(), L"-settings.txt")) {
-          auto s = p.filename().wstring();
-          s.resize(s.size() - strlen("-settings.txt"));
-
-          auto pluginName = std::filesystem::path(s).string();
-
-          // Why do we treat it as an exception actually?
-          std::string what =
-            "Found settings file: " + p.string() + " for plugin " + pluginName;
-          ExceptionPrinter(ConsoleApi::GetExceptionPrefix())
-            .PrintException(what.data());
-
-          auto standardJson = JsValue::GlobalObject().GetProperty("JSON");
-          auto parsedSettings = standardJson.GetProperty("parse").Call(
-            { standardJson, ReadFile(p) });
-          g_jAllSettings.SetProperty(pluginName, parsedSettings);
-          continue;
-        }
-
-        if (EndsWith(p.wstring(), L"-logs.txt")) {
-          continue;
-        }
-
-        scriptsToExecute.push_back(p);
-      }
-
-      for (auto& scriptPath : scriptsToExecute) {
-        auto scriptSrc = ReadFile(scriptPath);
-
-        // We will be able to use require() and log()
-        JsValue devApi = JsValue::Object();
-        DevApi::Register(
-          devApi, &engine,
-          { { "skyrimPlatform",
-              [fileDir](JsValue e) {
-                EncodingApi::Register(e);
-                LoadGameApi::Register(e);
-                CameraApi::Register(e);
-                MpClientPluginApi::Register(e);
-                HttpClientApi::Register(e);
-                ConsoleApi::Register(e);
-                DevApi::Register(e, &engine, {}, fileDir);
-                EventsApi::Register(e);
-                BrowserApi::Register(e, g_browserApiState);
-                InventoryApi::Register(e);
-                CallNativeApi::Register(
-                  e, [] { return g_nativeCallRequirements; });
-                e.SetProperty(
-                  "getJsMemoryUsage",
-                  JsValue::Function(
-                    [](const JsFunctionArguments& args) -> JsValue {
-                      return (double)engine->GetMemoryUsage();
-                    }));
-                e.SetProperty(
-                  "settings",
-                  [&](const JsFunctionArguments& args) {
-                    return g_jAllSettings;
-                  },
-                  nullptr);
-
-                return SkyrimPlatformProxy::Attach(e);
-              } } },
-          fileDir);
-
-        JsValue consoleApi = JsValue::Object();
-        ConsoleApi::Register(consoleApi);
-        for (auto f : { "require", "addNativeExports" })
-          JsValue::GlobalObject().SetProperty(f, devApi.GetProperty(f));
-        JsValue::GlobalObject().SetProperty(
-          "log", consoleApi.GetProperty("printConsole"));
-
-        engine->RunScript(
-          ReadFile(std::filesystem::path("Data/Platform/Distribution") /
-                   "___systemPolyfill.js"),
-          "___systemPolyfill.js");
-        engine->RunScript(scriptSrc, scriptPath.filename().string())
-          .ToString();
-      }
+    if (tickId == 1) {
+        JsInit();
     }
 
     if (gameFunctionsAvailable) {
       g_taskQueue.Update();
       g_nativeCallRequirements.jsThrQ->Update();
     }
-    if (!gameFunctionsAvailable) {
+    else {
       g_taskQueueTick.Update();
       HttpClientApi::GetHttpClient().Update();
     }
+
     EventsApi::SendEvent(gameFunctionsAvailable ? "update" : "tick", {});
 
   } catch (std::exception& e) {
