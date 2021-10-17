@@ -162,16 +162,13 @@ Equipment GetEquipment(MpActor& ac)
 
 void RecalculateWorn(MpObjectReference& refr)
 {
-  if (!refr.GetParent()->HasEspm()) {
+  if (!refr.GetParent()->HasEspm())
     return;
-  }
   auto& loader = refr.GetParent()->GetEspm();
-  auto& cache = refr.GetParent()->GetEspmCache();
 
   auto ac = dynamic_cast<MpActor*>(&refr);
-  if (!ac) {
+  if (!ac)
     return;
-  }
 
   const Equipment eq = GetEquipment(*ac);
 
@@ -181,9 +178,8 @@ void RecalculateWorn(MpObjectReference& refr)
     bool isEquipped = entry.extra.worn != Inventory::Worn::None;
     bool isWeap = !!espm::Convert<espm::WEAP>(
       loader.GetBrowser().LookupById(entry.baseId).rec);
-    if (isEquipped && isWeap) {
+    if (isEquipped && isWeap)
       continue;
-    }
     newEq.inv.AddItems({ entry });
   }
 
@@ -195,9 +191,9 @@ void RecalculateWorn(MpObjectReference& refr)
       auto lookupRes = loader.GetBrowser().LookupById(entry.baseId);
       if (auto weap = espm::Convert<espm::WEAP>(lookupRes.rec)) {
         if (!bestEntry.count ||
-            weap->GetData(cache).weapData->damage > bestDamage) {
+            weap->GetData().weapData->damage > bestDamage) {
           bestEntry = entry;
-          bestDamage = weap->GetData(cache).weapData->damage;
+          bestDamage = weap->GetData().weapData->damage;
         }
       }
     }
@@ -211,9 +207,8 @@ void RecalculateWorn(MpObjectReference& refr)
   ac->SetEquipment(newEq.ToJson().dump());
   for (auto listener : ac->GetListeners()) {
     auto actor = dynamic_cast<MpActor*>(listener);
-    if (!actor) {
+    if (!actor)
       continue;
-    }
     std::string s;
     s += Networking::MinPacketId;
     s += nlohmann::json{
@@ -371,27 +366,23 @@ void ActionListener::OnCraftItem(const RawMessageData& rawMsgData,
     partOne.worldState.GetFormAt<MpObjectReference>(workbenchId);
 
   auto& br = partOne.worldState.GetEspm().GetBrowser();
-  auto& cache = partOne.worldState.GetEspmCache();
   auto base = br.LookupById(workbench.GetBaseId());
 
-  if (base.rec->GetType() != "FURN") {
+  if (base.rec->GetType() != "FURN")
     throw std::runtime_error("Unable to use " +
                              base.rec->GetType().ToString() + " as workbench");
-  }
 
   int espmIdx = 0;
   auto recipeUsed = FindRecipe(br, inputObjects, resultObjectId, &espmIdx);
 
-  if (!recipeUsed) {
+  if (!recipeUsed)
     throw std::runtime_error("Recipe not found");
-  }
 
   MpActor* me = partOne.serverState.ActorByUser(rawMsgData.userId);
-  if (!me) {
+  if (!me)
     throw std::runtime_error("Unable to craft without Actor attached");
-  }
 
-  auto recipeData = recipeUsed->GetData(cache);
+  auto recipeData = recipeUsed->GetData();
   UseCraftRecipe(me, recipeData, br, espmIdx);
 }
 
@@ -550,7 +541,6 @@ float CalculateDamage(MpActor& actor, const HitData& hitData,
   }
 
   const auto& browser = actor.GetParent()->GetEspm().GetBrowser();
-  auto& cache = actor.GetParent()->GetEspmCache();
 
   if (hitData.source == 0x1f4) {
     uint32_t raceId = GetRaceId(actor, compressedFieldCache, browser);
@@ -573,7 +563,7 @@ float CalculateDamage(MpActor& actor, const HitData& hitData,
   }
 
   const auto weaponData =
-    espm::Convert<espm::WEAP>(lookUpWeapon.rec)->GetData(cache).weapData;
+    espm::Convert<espm::WEAP>(lookUpWeapon.rec)->GetData().weapData;
 
   if (weaponData) {
     return weaponData->damage;

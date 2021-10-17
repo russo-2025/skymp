@@ -189,13 +189,14 @@ class RecordHeader
 
 public:
   uint32_t GetId() const noexcept;
-  const char* GetEditorId(
-    espm::CompressedFieldsCache& compressedFieldsCache) const noexcept;
-  void GetScriptData(
-    ScriptData* out,
-    espm::CompressedFieldsCache& compressedFieldsCache) const noexcept;
+  const char* GetEditorId(espm::CompressedFieldsCache* compressedFieldsCache =
+                            nullptr) const noexcept;
+  void GetScriptData(ScriptData* out,
+                     espm::CompressedFieldsCache* compressedFieldsCache =
+                       nullptr) const noexcept;
   std::vector<uint32_t> GetKeywordIds(
-    espm::CompressedFieldsCache& compressedFieldsCache) const noexcept;
+    espm::CompressedFieldsCache* compressedFieldsCache =
+      nullptr) const noexcept;
 
   Type GetType() const noexcept;
 
@@ -261,8 +262,7 @@ public:
     std::vector<const char*> masters;
   };
 
-  Data GetData(CompressedFieldsCache& compressedFieldsCache) const noexcept;
-  ;
+  Data GetData() const noexcept;
 };
 static_assert(sizeof(TES4) == sizeof(RecordHeader));
 
@@ -294,8 +294,7 @@ public:
     const float* boundsDiv2 = nullptr;
   };
 
-  Data GetData(CompressedFieldsCache& compressedFieldsCache) const noexcept;
-  ;
+  Data GetData() const noexcept;
 };
 static_assert(sizeof(REFR) == sizeof(RecordHeader));
 
@@ -317,8 +316,7 @@ public:
     std::vector<ContainerObject> objects;
   };
 
-  Data GetData(CompressedFieldsCache& compressedFieldsCache) const noexcept;
-  ;
+  Data GetData() const noexcept;
 };
 static_assert(sizeof(CONT) == sizeof(RecordHeader));
 
@@ -343,8 +341,7 @@ public:
     uint32_t useSound = 0;
   };
 
-  Data GetData(CompressedFieldsCache& compressedFieldsCache) const noexcept;
-  ;
+  Data GetData() const noexcept;
 };
 static_assert(sizeof(TREE) == sizeof(RecordHeader));
 
@@ -355,8 +352,7 @@ public:
 
   using Data = TREE::Data;
 
-  Data GetData(CompressedFieldsCache& compressedFieldsCache) const noexcept;
-  ;
+  Data GetData() const noexcept;
 };
 static_assert(sizeof(TREE) == sizeof(RecordHeader));
 
@@ -402,8 +398,7 @@ public:
     Entry* entries = nullptr;
   };
 
-  Data GetData(CompressedFieldsCache& compressedFieldsCache) const noexcept;
-  ;
+  Data GetData() const noexcept;
 };
 static_assert(sizeof(LVLI) == sizeof(RecordHeader));
 static_assert(sizeof(LVLI::Entry) == 18);
@@ -448,8 +443,7 @@ public:
     std::vector<uint32_t> formIds;
   };
 
-  Data GetData(CompressedFieldsCache& compressedFieldsCache) const noexcept;
-  ;
+  Data GetData() const noexcept;
 };
 static_assert(sizeof(FLST) == sizeof(RecordHeader));
 
@@ -574,9 +568,9 @@ struct Property
 using IterateFieldsCallback =
   std::function<void(const char* type, uint32_t size, const char* data)>;
 
-void IterateFields_(const espm::RecordHeader* rec,
-                    const espm::IterateFieldsCallback& f,
-                    espm::CompressedFieldsCache& compressedFieldsCache);
+void IterateFields_(
+  const espm::RecordHeader* rec, const espm::IterateFieldsCallback& f,
+  espm::CompressedFieldsCache* compressedFieldsCache = nullptr);
 
 struct Script
 {
@@ -602,8 +596,7 @@ public:
     ScriptData scriptData;
   };
 
-  Data GetData(CompressedFieldsCache& compressedFieldsCache) const noexcept;
-  ;
+  Data GetData() const noexcept;
 };
 static_assert(sizeof(ACTI) == sizeof(RecordHeader));
 
@@ -627,8 +620,7 @@ public:
     uint32_t outputCount = 0;
   };
 
-  Data GetData(CompressedFieldsCache& compressedFieldsCache) const noexcept;
-  ;
+  Data GetData() const noexcept;
 };
 static_assert(sizeof(COBJ) == sizeof(RecordHeader));
 
@@ -643,8 +635,7 @@ public:
     uint32_t count = 0;
   };
 
-  Data GetData(CompressedFieldsCache& compressedFieldsCache) const noexcept;
-  ;
+  Data GetData() const noexcept;
 };
 static_assert(sizeof(OTFT) == sizeof(RecordHeader));
 
@@ -695,8 +686,7 @@ public:
     const WeapData* weapData = nullptr;
   };
 
-  Data GetData(CompressedFieldsCache& compressedFieldsCache) const noexcept;
-  ;
+  Data GetData() const noexcept;
 };
 static_assert(sizeof(WEAP) == sizeof(RecordHeader));
 
