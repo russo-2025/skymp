@@ -158,7 +158,7 @@ void JsInit() {
     auto standardJson = JsValue::GlobalObject().GetProperty("JSON");
     JsValue pSettings = standardJson.GetProperty("parse").Call({ standardJson, settingContent });
 
-    RE::ConsoleLog::GetSingleton()->Print("Settings loaded");
+    RE::ConsoleLog::GetSingleton()->Print("[Native] Settings loaded");
 
     HttpClient::Headers headers;
 
@@ -171,12 +171,12 @@ void JsInit() {
     HttpClientApi::GetHttpClient().Get(host.c_str(), path.c_str(), headers,
         [settingContent](HttpClient::HttpResult res) -> void {
             if (res.status) {
-                RE::ConsoleLog::GetSingleton()->Print("skymp5-client.js loaded");
+                RE::ConsoleLog::GetSingleton()->Print("[Native] skymp5-client.js loaded");
                 clientSrc = std::string((const char*)res.body.data(), res.body.size());
                 Execute(clientSrc, settingContent);
             }
             else {
-                RE::ConsoleLog::GetSingleton()->Print("failed to load skymp5-client.js");
+                RE::ConsoleLog::GetSingleton()->Print("[Native] failed to load skymp5-client.js");
             }
         }
     );
