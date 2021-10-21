@@ -109,11 +109,6 @@ void SetupFridaHooks()
   w.Attach(listener, 0x85C423, CONSOLE_VPRINT);
 }
 
-#include <format>
-#include <string>
-#include <string_view>
-#include <fmt/format.h>
-
 thread_local uint32_t g_queueNiNodeActorId = 0;
 thread_local void* g_prevMainMenuView = nullptr;
 
