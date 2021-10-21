@@ -106,9 +106,13 @@ void SetupFridaHooks()
   w.Attach(listener, 5367792, RENDER_MAIN_MENU);
   w.Attach(listener, 19244800, SEND_EVENT);
   w.Attach(listener, 19245744, SEND_EVENT_ALL);
-  w.Attach(listener, 8766511/*0x85C42F*/, CONSOLE_VPRINT);
-  
+  w.Attach(listener, 0x85C423, CONSOLE_VPRINT);
 }
+
+#include <format>
+#include <string>
+#include <string_view>
+#include <fmt/format.h>
 
 thread_local uint32_t g_queueNiNodeActorId = 0;
 thread_local void* g_prevMainMenuView = nullptr;
@@ -125,13 +129,13 @@ static void example_listener_on_enter(GumInvocationListener* listener,
 
   switch ((size_t)hook_id) {
     case CONSOLE_VPRINT: {
-        char** refr =  _ic->cpu_context->rax ? (char**)_ic->cpu_context->rax : nullptr;
-        
-        if (!refr || !*refr) { // !*refr нужно ли проверять это??? 
+        char* refr =  _ic->cpu_context->rdx ? (char*)_ic->cpu_context->rdx : nullptr;
+
+        if (!refr) {
             return;
         }
 
-        EventsApi::SendConsoleMsgEvent(*refr);
+        EventsApi::SendConsoleMsgEvent(refr);
 
         break;
     }
