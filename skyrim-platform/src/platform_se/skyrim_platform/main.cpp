@@ -170,9 +170,14 @@ void JsInit() {
 
     HttpClientApi::GetHttpClient().Get(host.c_str(), path.c_str(), headers,
         [settingContent](HttpClient::HttpResult res) -> void {
-            RE::ConsoleLog::GetSingleton()->Print("skymp5-client.js loaded");
-            clientSrc = std::string((const char*)res.body.data(), res.body.size());
-            Execute(clientSrc, settingContent);
+            if (res.status) {
+                RE::ConsoleLog::GetSingleton()->Print("skymp5-client.js loaded");
+                clientSrc = std::string((const char*)res.body.data(), res.body.size());
+                Execute(clientSrc, settingContent);
+            }
+            else {
+                RE::ConsoleLog::GetSingleton()->Print("failed to load skymp5-client.js");
+            }
         }
     );
 }
