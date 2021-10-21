@@ -55,7 +55,6 @@ public:
 class WrapperScreenShotEventHandler : public RE::MenuEventHandler {
 public:
 	WrapperScreenShotEventHandler::WrapperScreenShotEventHandler(RE::MenuEventHandler* originalHandler_) : originalHandler(originalHandler_) {
-		RE::ConsoleLog::GetSingleton()->Print("TestEventHandler::TestEventHandler `%p`", originalHandler_);
 	}
 
 	bool CanProcess(RE::InputEvent* e) override {
