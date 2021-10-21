@@ -115,11 +115,6 @@ uint32_t PartOne::CreateActor(uint32_t formId, const NiPoint3& pos,
   return formId;
 }
 
-void PartOne::EnableProductionHacks()
-{
-  pImpl->enableProductionHacks = true;
-}
-
 namespace {
 std::string GetName(MpActor& actor)
 {
