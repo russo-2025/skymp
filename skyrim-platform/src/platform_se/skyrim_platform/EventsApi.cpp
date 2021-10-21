@@ -460,6 +460,15 @@ void EventsApi::IpcSend(const char* systemName, const uint8_t* data,
   SendEvent("ipcMessage", { JsValue::Undefined(), ipcMessageEvent });
 }
 
+void EventsApi::SendConsoleMsgEvent(const char* msg)
+{
+    g_taskQueue.AddTask([=] {
+        auto obj = JsValue::Object();
+        obj.SetProperty("message", JsValue::String(msg));
+        EventsApi::SendEvent("consoleMessage", { JsValue::Undefined(), obj });
+    });
+}
+
 void EventsApi::SendMenuOpen(const char* menuName)
 {
   g_taskQueue.AddTask([=] {
@@ -520,7 +529,8 @@ JsValue AddCallback(const JsFunctionArguments& args, bool isOnce = false)
                                    "ipcMessage",
                                    "menuOpen",
                                    "menuClose",
-                                   "browserMessage" };
+                                   "browserMessage",
+                                   "consoleMessage" };
 
   if (events.count(eventName) == 0) {
     throw InvalidArgumentException("eventName", eventName);
