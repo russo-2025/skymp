@@ -126,7 +126,13 @@ static void example_listener_on_enter(GumInvocationListener* listener,
   switch ((size_t)hook_id) {
     case CONSOLE_VPRINT: {
         char** refr =  _ic->cpu_context->rax ? (char**)_ic->cpu_context->rax : nullptr;
+        
+        if (!refr || !*refr) { // !*refr нужно ли проверять это??? 
+            return;
+        }
+
         EventsApi::SendConsoleMsgEvent(*refr);
+
         break;
     }
     case SEND_EVENT: {
