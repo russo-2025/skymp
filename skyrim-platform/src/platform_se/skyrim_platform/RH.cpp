@@ -108,7 +108,6 @@ void DisableConsole() {
 	mc->AddHandler((RE::MenuEventHandler*)mc->consoleOpenHandler.get());
 
 	RE::MenuEventHandler* originalHandler = (RE::MenuEventHandler*)mc->screenshotHandler.get();
-	RE::ConsoleLog::GetSingleton()->Print("DisableConsole `%p`", originalHandler, originalHandler);
 	RE::MenuEventHandler* handler = (RE::MenuEventHandler*)new WrapperScreenShotEventHandler(originalHandler);
 
 	mc->RemoveHandler(originalHandler);
