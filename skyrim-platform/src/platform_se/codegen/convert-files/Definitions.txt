@@ -71,6 +71,13 @@ export interface Browser {
 }
 export declare let browser: Browser;
 
+export interface RH {
+    SetFirstPersonFOV(fov: number): void;
+    SetWorldFOV(fov: number): void;
+    QuitGame(): void;
+}
+export declare let rh: RH;
+
 export interface ExtraData {
   type: 'Health' | 'Count' | 'Enchantment' | 'Charge' | 'TextDisplayData' | 'Soul' | 'Poison' | 'Worn' | 'WornLeft';
 }

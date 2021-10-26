@@ -1,5 +1,7 @@
 #include "RH.h"
 
+//DisableConsole
+//DisableDoubleSpeed
 #include <RE/MenuControls.h>
 #include <RE/MenuEventHandler.h>
 #include <RE/UI.h>
@@ -8,6 +10,13 @@
 #include <RE/ConsoleLog.h>
 #include <RE/InputEvent.h>
 #include <RE/ButtonEvent.h>
+
+//QuitGame
+#include <RE/Main.h>
+
+//SetWorldFOV
+//SetFirstPersonFOV
+#include <RE/PlayerCamera.h>
 
 namespace RE {
 	class ScreenshotHandler : public MenuEventHandler {
@@ -46,11 +55,11 @@ namespace RE {
 namespace RH {
 class EmptyEventHandler : public RE::MenuEventHandler {
 public:
-	bool CanProcess(RE::InputEvent * e) override { return false; }
-	bool ProcessKinect(RE::KinectEvent * e) override { return false; }
-	bool ProcessThumbstick(RE::ThumbstickEvent * e) override { return false; }
-	bool ProcessMouseMove(RE::MouseMoveEvent * e) override { return false; }
-	bool ProcessButton(RE::ButtonEvent * e) override { return false; }
+	bool CanProcess(RE::InputEvent* e) override { return false; }
+	bool ProcessKinect(RE::KinectEvent* e) override { return false; }
+	bool ProcessThumbstick(RE::ThumbstickEvent* e) override { return false; }
+	bool ProcessMouseMove(RE::MouseMoveEvent* e) override { return false; }
+	bool ProcessButton(RE::ButtonEvent* e) override { return false; }
 };
 
 class WrapperScreenShotEventHandler : public RE::MenuEventHandler {
@@ -68,7 +77,7 @@ public:
 		return false;
 	}
 	bool ProcessKinect(RE::KinectEvent* e) override { return false; }
-	bool ProcessThumbstick(RE::ThumbstickEvent* e) override {return false; }
+	bool ProcessThumbstick(RE::ThumbstickEvent* e) override { return false; }
 	bool ProcessMouseMove(RE::MouseMoveEvent* e) override { return false; }
 	bool ProcessButton(RE::ButtonEvent* e) override {
 		if (strcmp(e->QUserEvent().c_str(), "Screenshot") == 0) {
@@ -93,6 +102,24 @@ public:
 	void PreDisplay() { return; }
 	void RefreshPlatform() { return; }
 };
+
+void QuitGame() {
+	RE::Main::GetSingleton()->quitGame = true;
+}
+
+void SetFirstPersonFOV(double fov) {
+	auto pc = RE::PlayerCamera::GetSingleton();
+	pc->lock.Lock();
+	pc->firstPersonFOV = (float)fov;
+	pc->lock.Unlock();
+}
+
+void SetWorldFOV(double fov) {
+	auto pc = RE::PlayerCamera::GetSingleton();
+	pc->lock.Lock();
+	pc->worldFOV = (float)fov;
+	pc->lock.Unlock();
+}
 
 void DisableConsole() {
 	auto mc = RE::MenuControls::GetSingleton();

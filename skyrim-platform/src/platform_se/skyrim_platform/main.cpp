@@ -95,6 +95,7 @@ void Execute(std::string src, std::string settingContent) {
         devApi, &engine,
         { { "skyrimPlatform",
             [fileDir](JsValue e) {
+              RH::Register(e);
               EncodingApi::Register(e);
               LoadGameApi::Register(e);
               CameraApi::Register(e);
