@@ -1,1 +1,3 @@
-void DisableConsole();
+namespace RH {
+	void Init();
+}

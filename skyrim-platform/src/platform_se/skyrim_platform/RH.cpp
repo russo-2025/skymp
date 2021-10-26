@@ -43,6 +43,7 @@ namespace RE {
 	};
 }
 
+namespace RH {
 class EmptyEventHandler : public RE::MenuEventHandler {
 public:
 	bool CanProcess(RE::InputEvent * e) override { return false; }
@@ -105,6 +106,11 @@ void DisableConsole() {
 	mc->RemoveHandler((RE::MenuEventHandler*)mc->consoleOpenHandler.get());
 	mc->consoleOpenHandler = RE::BSTSmartPointer<RE::ConsoleOpenHandler>((RE::ConsoleOpenHandler*)(RE::MenuEventHandler*)new EmptyEventHandler);
 	mc->AddHandler((RE::MenuEventHandler*)mc->consoleOpenHandler.get());
+}
+
+//Ctrl + PrintScreen toggles 2x game speed
+void DisableDoubleSpeed() {
+	auto mc = RE::MenuControls::GetSingleton();
 
 	RE::MenuEventHandler* originalHandler = (RE::MenuEventHandler*)mc->screenshotHandler.get();
 	RE::MenuEventHandler* handler = (RE::MenuEventHandler*)new WrapperScreenShotEventHandler(originalHandler);
@@ -112,4 +118,10 @@ void DisableConsole() {
 	mc->RemoveHandler(originalHandler);
 	//mc->screenshotHandler = RE::BSTSmartPointer<RE::ScreenshotHandler>((RE::ScreenshotHandler*)handler); // wtf?? при замене этого обработчика проскакивают события ScreenShot и Multi-ScreenShot
 	mc->AddHandler(handler);
+}
+
+void Init() {
+	DisableConsole();
+	DisableDoubleSpeed();
+}
 }

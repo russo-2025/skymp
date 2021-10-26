@@ -189,7 +189,6 @@ void JsTick(bool gameFunctionsAvailable)
     if (!helloSaid) {
       helloSaid = true;
       console->Print("Hello SE");
-      DisableConsole();
     }
   }
 
@@ -264,6 +263,16 @@ void OnPapyrusUpdate(RE::BSScript::IVirtualMachine* vm, RE::VMStackID stackId)
   g_nativeCallRequirements.vm = nullptr;
 }
 
+void MessageHandler(SKSEMessagingInterface::Message* a_msg)
+{
+    switch (a_msg->type) {
+        case SKSE::MessagingInterface::kDataLoaded:
+            RH::Init();
+            OnUpdate();
+        break;
+    }
+}
+
 extern "C" {
 __declspec(dllexport) uint32_t
   SkyrimPlatform_IpcSubscribe_Impl(const char* systemName,
@@ -298,17 +307,20 @@ __declspec(dllexport) bool SKSEPlugin_Query_Impl(
     _FATALERROR("loaded in editor, marking as incompatible");
     return false;
   }
+
   return true;
 }
 
 __declspec(dllexport) bool SKSEPlugin_Load_Impl(const SKSEInterface* skse)
 {
-  g_messaging =
+  g_messaging = 
     (SKSEMessagingInterface*)skse->QueryInterface(kInterface_Messaging);
   if (!g_messaging) {
     _FATALERROR("couldn't get messaging interface");
     return false;
   }
+  g_messaging->RegisterListener(skse->GetPluginHandle(), "SKSE", MessageHandler);
+
   g_taskInterface = (SKSETaskInterface*)skse->QueryInterface(kInterface_Task);
   if (!g_taskInterface) {
     _FATALERROR("couldn't get task interface");
