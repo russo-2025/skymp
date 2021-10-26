@@ -1249,6 +1249,9 @@ void ScampServer::RegisterChakraApi(std::shared_ptr<JsEngine> chakraEngine)
         res = arr;
       } else if (propertyName == "isDisabled") {
         res = JsValue(refr.IsDisabled());
+      }
+      else if (propertyName == "relootIsDisabled") {
+          res = JsValue(refr.RelootIsDisabled());
       } else {
         EnsurePropertyExists(gamemodeApiState, propertyName);
         res = refr.GetDynamicFields().Get(propertyName);
@@ -1302,6 +1305,8 @@ void ScampServer::RegisterChakraApi(std::shared_ptr<JsEngine> chakraEngine)
         } else {
           refr.SetInventory(Inventory());
         }
+      } else if (propertyName == "relootIsDisabled") {
+          newValue.get<bool>() ? refr.DisableReloot() : refr.EnableReloot();
       } else if (propertyName == "equipment") {
         // TODO: Implement this
         throw std::runtime_error("mp.set is not implemented for 'equipment'");
@@ -1330,6 +1335,19 @@ void ScampServer::RegisterChakraApi(std::shared_ptr<JsEngine> chakraEngine)
       }
       return JsValue::Undefined();
     }));
+
+  mp.SetProperty(
+      "reloot",
+      JsValue::Function([this, update](const JsFunctionArguments& args) {
+          auto formId = ExtractFormId(args[1]);
+          auto& refr = partOne->worldState.GetFormAt<MpObjectReference>(formId);
+
+          refr.RequestReloot();
+          refr.DoReloot();
+
+          return JsValue::Undefined();
+      })
+  );
 
   mp.SetProperty(
     "place",

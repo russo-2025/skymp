@@ -107,6 +107,9 @@ public:
   void SetAnimationVariableBool(const char* name, bool value);
   void Disable();
   void Enable();
+  const bool& RelootIsDisabled() const;
+  void DisableReloot();
+  void EnableReloot();
   void SetActivationBlocked(bool blocked);
   void ForceSubscriptionsUpdate();
   void SetPrimitive(const NiPoint3& boundsDiv2);

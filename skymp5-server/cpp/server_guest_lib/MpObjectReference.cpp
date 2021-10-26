@@ -440,6 +440,29 @@ void MpObjectReference::Enable()
   ForceSubscriptionsUpdate();
 }
 
+const bool& MpObjectReference::RelootIsDisabled() const
+{
+    return pImpl->ChangeForm().relootIsDisabled;
+}
+
+void MpObjectReference::DisableReloot()
+{
+    if (pImpl->ChangeForm().relootIsDisabled)
+        return;
+
+    pImpl->EditChangeForm(
+        [&](MpChangeFormREFR& changeForm) { changeForm.relootIsDisabled = true; });
+}
+
+void MpObjectReference::EnableReloot()
+{
+    if (!pImpl->ChangeForm().relootIsDisabled)
+        return;
+
+    pImpl->EditChangeForm(
+        [&](MpChangeFormREFR& changeForm) { changeForm.relootIsDisabled = false; });
+}
+
 void MpObjectReference::SetActivationBlocked(bool blocked)
 {
   // TODO: Save

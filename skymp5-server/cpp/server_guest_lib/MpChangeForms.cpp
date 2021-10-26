@@ -18,6 +18,7 @@ nlohmann::json MpChangeForm::ToJson(const MpChangeForm& changeForm)
   res["baseContainerAdded"] = changeForm.baseContainerAdded;
   res["nextRelootDatetime"] = changeForm.nextRelootDatetime;
   res["isDisabled"] = changeForm.isDisabled;
+  res["relootIsDisabled"] = changeForm.relootIsDisabled;
   res["profileId"] = changeForm.profileId;
   res["isRaceMenuOpen"] = changeForm.isRaceMenuOpen;
   res["dynamicFields"] = changeForm.dynamicFields.GetAsJson();
@@ -48,7 +49,7 @@ MpChangeForm MpChangeForm::JsonToChangeForm(simdjson::dom::element& element)
     worldOrCell("worldOrCell"), inv("inv"), isHarvested("isHarvested"),
     isOpen("isOpen"), baseContainerAdded("baseContainerAdded"),
     nextRelootDatetime("nextRelootDatetime"), isDisabled("isDisabled"),
-    profileId("profileId"), isRaceMenuOpen("isRaceMenuOpen"),
+    relootIsDisabled("relootIsDisabled"), profileId("profileId"), isRaceMenuOpen("isRaceMenuOpen"),
     lookDump("lookDump"), equipmentDump("equipmentDump"),
     dynamicFields("dynamicFields"), healthPercentage("healthPercentage"),
     magickaPercentage("magickaPercentage"),
@@ -84,6 +85,7 @@ MpChangeForm MpChangeForm::JsonToChangeForm(simdjson::dom::element& element)
   ReadEx(element, baseContainerAdded, &res.baseContainerAdded);
   ReadEx(element, nextRelootDatetime, &res.nextRelootDatetime);
   ReadEx(element, isDisabled, &res.isDisabled);
+  ReadEx(element, relootIsDisabled, &res.relootIsDisabled);
   ReadEx(element, profileId, &res.profileId);
   ReadEx(element, isRaceMenuOpen, &res.isRaceMenuOpen);
 

@@ -35,6 +35,7 @@ public:
   bool baseContainerAdded = false;
   uint64_t nextRelootDatetime = 0;
   bool isDisabled = false;
+  bool relootIsDisabled = false;
   int32_t profileId = -1;
 
   bool isRaceMenuOpen = false;
@@ -61,7 +62,7 @@ public:
     return std::make_tuple(recType, formDesc, baseDesc, position.x, position.y,
                            position.z, angle.x, angle.y, angle.z, worldOrCell,
                            inv.ToJson(), isHarvested, isOpen,
-                           baseContainerAdded, nextRelootDatetime, isDisabled,
+                           baseContainerAdded, nextRelootDatetime, isDisabled, relootIsDisabled,
                            profileId, isRaceMenuOpen, lookDump, equipmentDump);
   }
 

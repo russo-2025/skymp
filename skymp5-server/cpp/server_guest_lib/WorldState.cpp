@@ -146,7 +146,7 @@ void WorldState::TickTimers()
       uint32_t relootTargetId = list.begin()->first;
       auto relootTarget = std::dynamic_pointer_cast<MpObjectReference>(
         LookupFormById(relootTargetId));
-      if (relootTarget)
+      if (relootTarget && !relootTarget->RelootIsDisabled())
         relootTarget->DoReloot();
 
       list.pop_front();
