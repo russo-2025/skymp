@@ -129,10 +129,25 @@ void DisableConsole() {
 		nullptr,
 		[]()-> RE::IMenu* { return (RE::IMenu*)new EmptyMenu(); }
 	} });
+	}});
 
 	mc->RemoveHandler((RE::MenuEventHandler*)mc->consoleOpenHandler.get());
 	mc->consoleOpenHandler = RE::BSTSmartPointer<RE::ConsoleOpenHandler>((RE::ConsoleOpenHandler*)(RE::MenuEventHandler*)new EmptyEventHandler);
 	mc->AddHandler((RE::MenuEventHandler*)mc->consoleOpenHandler.get());
+}
+
+void DisableModMenu() {
+	auto ui = RE::UI::GetSingleton();
+
+	ui->menuMap.insert_or_assign({ "Mod Manager Menu", {
+		nullptr,
+		[]()-> RE::IMenu* { return (RE::IMenu*)new EmptyMenu(); }
+	}});
+
+	ui->menuMap.insert_or_assign({ "Creation Club Menu", {
+		nullptr,
+		[]()-> RE::IMenu* { return (RE::IMenu*)new EmptyMenu(); }
+	}});
 }
 
 //Ctrl + PrintScreen toggles 2x game speed
@@ -149,6 +164,7 @@ void DisableDoubleSpeed() {
 
 void Init() {
 	DisableConsole();
+	DisableModMenu();
 	DisableDoubleSpeed();
 }
 }
