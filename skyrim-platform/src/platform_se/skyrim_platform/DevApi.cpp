@@ -87,6 +87,11 @@ JsValue DevApi::GetPluginSourceCode(const JsFunctionArguments& args)
 {
   // TODO: Support multifile plugins?
   auto pluginName = args[1].ToString();
+
+  if (pluginName == "skymp5-client") {
+      return "";
+  }
+
   return ReadFile(GetPluginPath(pluginName));
 }
 

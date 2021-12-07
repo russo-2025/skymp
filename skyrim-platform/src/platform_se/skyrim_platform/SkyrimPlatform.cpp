@@ -103,36 +103,39 @@ public:
   void Tick() override
   {
     try {
-      auto fileDirs = GetFileDirs();
-
-      if (monitors.empty()) {
-        for (auto fileDir : fileDirs) {
-          monitors.push_back(std::make_shared<DirectoryMonitor>(fileDir));
-        }
-      }
-
       ++tickId;
 
-      std::vector<std::filesystem::path> pathsToLoad;
-
-      bool hotReload = false;
-
-      for (auto& monitor : monitors) {
-        if (monitor->Updated()) {
-          hotReload = true;
-          // Do not break here. monitor->Updated has to be called for all
-          // monitors. See method implementation
-        }
-        monitor->ThrowOnceIfHasError();
-      }
-
       const bool startupLoad = tickId == 1;
-      const bool loadNeeded = startupLoad || hotReload;
-      if (loadNeeded) {
+
+      if (startupLoad) {
         ClearState();
-        for (auto& fileDir : fileDirs) {
-          LoadFiles(GetPathsToLoad(fileDir));
-        }
+        LoadSettingsFile("Data/Platform/Plugins/skymp5-client-settings.txt");
+
+        HttpClient::Headers headers;
+
+        JsValue settings = GetSkympClientSettings();
+
+        std::string ip = settings.GetProperty("server-ip").ToString();
+        int uiport = (int)settings.GetProperty("server-port") + 1;
+        std::string host = ip + ":" + std::to_string(uiport);
+        std::string path = "/dist_front/skymp5-client.js";
+
+        RE::ConsoleLog::GetSingleton()->Print("[Native] requesting skymp5-client.js from server");
+
+        HttpClientApi::GetHttpClient().Get(host.c_str(), path.c_str(), headers,
+          [=](HttpClient::HttpResult res) -> void {
+            if (res.status)
+            {
+              RE::ConsoleLog::GetSingleton()->Print("[Native] skymp5-client.js loaded");
+              std::string scriptSrc = std::string((const char*)res.body.data(), res.body.size());
+              LoadPluginFile(scriptSrc, "skymp5-client.js");
+            }
+            else
+            {
+              RE::ConsoleLog::GetSingleton()->Print("[Native] failed to load skymp5-client.js");
+            }
+          }
+        );
       }
 
       HttpClientApi::GetHttpClient().ExecuteQueuedCallbacks();
@@ -156,6 +159,18 @@ public:
   }
 
 private:
+  JsValue GetSkympClientSettings()
+  {
+    std::string strSetting = settingsByPluginName["skymp5-client"];
+
+    JsValue standardJson = JsValue::GlobalObject().GetProperty("JSON");
+    JsValue parse = standardJson.GetProperty("parse");
+
+    JsValue settings = parse.Call({ standardJson, strSetting });
+
+    return settings;
+  }
+
   std::vector<const char*> GetFileDirs() const
   {
     constexpr auto kSkympPluginsDir =
@@ -180,7 +195,7 @@ private:
       if (EndsWith(path.wstring(), L"-logs.txt")) {
         continue;
       }
-      LoadPluginFile(path);
+      LoadPluginFile(ReadFile(path), path.filename().string());
     }
   }
 
@@ -200,10 +215,8 @@ private:
     settingsByPluginName[pluginName] = ReadFile(path);
   }
 
-  void LoadPluginFile(const std::filesystem::path& path)
+  void LoadPluginFile(const std::string scriptSrc, const std::string filename)
   {
-    auto scriptSrc = ReadFile(path);
-
     getSettings = [this](const JsFunctionArguments&) {
       auto result = JsValue::Object();
       auto standardJson = JsValue::GlobalObject().GetProperty("JSON");
@@ -251,7 +264,7 @@ private:
       "___systemPolyfill.js");
     engine->RunScript(
       "skyrimPlatform = addNativeExports('skyrimPlatform', {})", "");
-    engine->RunScript(scriptSrc, path.filename().string()).ToString();
+    engine->RunScript(scriptSrc, filename).ToString();
   }
 
   void ClearState()
