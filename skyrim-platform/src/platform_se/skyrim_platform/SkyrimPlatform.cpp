@@ -33,6 +33,7 @@
 #include "InventoryApi.h"
 #include "LoadGameApi.h"
 #include "MpClientPluginApi.h"
+#include "RH.h"
 
 CallNativeApi::NativeCallRequirements g_nativeCallRequirements;
 
@@ -244,6 +245,7 @@ private:
                            InventoryApi::Register(e);
                            CallNativeApi::Register(
                              e, [this] { return nativeCallRequirements; });
+                           RH::Register(e);
                            e.SetProperty("settings", getSettings, nullptr);
 
                            return SkyrimPlatformProxy::Attach(e);
