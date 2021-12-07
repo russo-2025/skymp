@@ -80,9 +80,9 @@ void AsyncSaveStorage::SaverThreadMain(Impl* pImpl)
           numChangeForms += pImpl->share.dbImpl->Upsert(t.changeForms);
           callbacksToFire.push_back(t.callback);
         }
-        if (numChangeForms > 0 && pImpl->logger)
+        /*if (numChangeForms > 0 && pImpl->logger)
           pImpl->logger->info("Saved {} ChangeForms in {} ticks",
-                              numChangeForms, clock() - was);
+                              numChangeForms, clock() - was);*/
       }
 
       {
