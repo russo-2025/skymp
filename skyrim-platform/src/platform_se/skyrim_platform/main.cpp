@@ -54,8 +54,8 @@
 #include <SKSE/Stubs.h>
 #include <skse64/PluginAPI.h>
 
-#include "SkyrimPlatform.h"
 #include "RH.h"
+#include "SkyrimPlatform.h"
 
 #define PLUGIN_NAME "SkyrimPlatform"
 #define PLUGIN_VERSION 0
@@ -101,12 +101,12 @@ void OnUpdate(RE::BSScript::IVirtualMachine* vm, RE::VMStackID stackId)
 
 void MessageHandler(SKSEMessagingInterface::Message* a_msg)
 {
-    switch (a_msg->type) {
+  switch (a_msg->type) {
     case SKSE::MessagingInterface::kDataLoaded:
-        RH::Init();
-        OnTick();
-        break;
-    }
+      RH::Init();
+      OnTick();
+      break;
+  }
 }
 
 extern "C" {
@@ -148,13 +148,15 @@ __declspec(dllexport) bool SKSEPlugin_Query_Impl(
 
 __declspec(dllexport) bool SKSEPlugin_Load_Impl(const SKSEInterface* skse)
 {
-    auto messagingInterface =
-        (SKSEMessagingInterface*)skse->QueryInterface(kInterface_Messaging);
-    if (!messagingInterface) {
-        _FATALERROR("couldn't get messaging interface");
-        return false;
-    }
-    messagingInterface->RegisterListener(skse->GetPluginHandle(), "SKSE", MessageHandler);
+  auto messagingInterface =
+    (SKSEMessagingInterface*)skse->QueryInterface(kInterface_Messaging);
+  if (!messagingInterface) {
+    _FATALERROR("couldn't get messaging interface");
+    return false;
+  }
+  messagingInterface->RegisterListener(skse->GetPluginHandle(), "SKSE",
+                                       MessageHandler);
+
   auto taskInterface = reinterpret_cast<SKSETaskInterface*>(
     skse->QueryInterface(kInterface_Task));
   if (!taskInterface) {
