@@ -110,6 +110,9 @@ public:
 
       if (startupLoad) {
         ClearState();
+
+        auto& engine = GetJsEngine(); //fuck
+
         LoadSettingsFile("Data/Platform/Plugins/skymp5-client-settings.txt");
 
         HttpClient::Headers headers;
