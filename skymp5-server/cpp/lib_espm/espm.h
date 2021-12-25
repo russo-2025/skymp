@@ -36,13 +36,14 @@ union CellOrGridPos
 class GroupHeader;
 class RecordHeader;
 class ScriptData;
+struct Effects;
 
 using GroupStack = std::vector<espm::GroupHeader*>;
 
 class Browser
 {
 public:
-  Browser(void* fileContent, size_t length);
+  Browser(const void* fileContent, size_t length);
   ~Browser();
 
   RecordHeader* LookupById(uint32_t formId) const noexcept;
@@ -189,14 +190,13 @@ class RecordHeader
 
 public:
   uint32_t GetId() const noexcept;
-  const char* GetEditorId(espm::CompressedFieldsCache* compressedFieldsCache =
-                            nullptr) const noexcept;
-  void GetScriptData(ScriptData* out,
-                     espm::CompressedFieldsCache* compressedFieldsCache =
-                       nullptr) const noexcept;
+  const char* GetEditorId(
+    espm::CompressedFieldsCache& compressedFieldsCache) const noexcept;
+  void GetScriptData(
+    ScriptData* out,
+    espm::CompressedFieldsCache& compressedFieldsCache) const noexcept;
   std::vector<uint32_t> GetKeywordIds(
-    espm::CompressedFieldsCache* compressedFieldsCache =
-      nullptr) const noexcept;
+    espm::CompressedFieldsCache& compressedFieldsCache) const noexcept;
 
   Type GetType() const noexcept;
 
@@ -232,7 +232,7 @@ namespace espm {
 template <class RecordT>
 const RecordT* Convert(const RecordHeader* source)
 {
-  if (source && source->GetType() == RecordT::type) {
+  if (source && source->GetType() == RecordT::kType) {
     return (const RecordT*)source;
   }
   return nullptr;
@@ -243,7 +243,7 @@ namespace espm {
 class TES4 : public RecordHeader
 {
 public:
-  static constexpr auto type = "TES4";
+  static constexpr auto kType = "TES4";
 
   // Header
   struct Header
@@ -262,7 +262,8 @@ public:
     std::vector<const char*> masters;
   };
 
-  Data GetData() const noexcept;
+  Data GetData(CompressedFieldsCache& compressedFieldsCache) const noexcept;
+  ;
 };
 static_assert(sizeof(TES4) == sizeof(RecordHeader));
 
@@ -270,7 +271,7 @@ static_assert(sizeof(TES4) == sizeof(RecordHeader));
 class REFR : public RecordHeader
 {
 public:
-  static constexpr auto type = "REFR";
+  static constexpr auto kType = "REFR";
 
   struct LocationalData
   {
@@ -294,14 +295,15 @@ public:
     const float* boundsDiv2 = nullptr;
   };
 
-  Data GetData() const noexcept;
+  Data GetData(CompressedFieldsCache& compressedFieldsCache) const noexcept;
+  ;
 };
 static_assert(sizeof(REFR) == sizeof(RecordHeader));
 
 class CONT : public RecordHeader
 {
 public:
-  static constexpr auto type = "CONT";
+  static constexpr auto kType = "CONT";
 
   struct ContainerObject
   {
@@ -316,7 +318,8 @@ public:
     std::vector<ContainerObject> objects;
   };
 
-  Data GetData() const noexcept;
+  Data GetData(CompressedFieldsCache& compressedFieldsCache) const noexcept;
+  ;
 };
 static_assert(sizeof(CONT) == sizeof(RecordHeader));
 
@@ -330,7 +333,7 @@ static_assert(sizeof(ObjectBounds) == 12);
 class TREE : public RecordHeader
 {
 public:
-  static constexpr auto type = "TREE";
+  static constexpr auto kType = "TREE";
 
   struct Data
   {
@@ -341,32 +344,34 @@ public:
     uint32_t useSound = 0;
   };
 
-  Data GetData() const noexcept;
+  Data GetData(CompressedFieldsCache& compressedFieldsCache) const noexcept;
+  ;
 };
 static_assert(sizeof(TREE) == sizeof(RecordHeader));
 
 class FLOR : public RecordHeader
 {
 public:
-  static constexpr auto type = "FLOR";
+  static constexpr auto kType = "FLOR";
 
   using Data = TREE::Data;
 
-  Data GetData() const noexcept;
+  Data GetData(CompressedFieldsCache& compressedFieldsCache) const noexcept;
+  ;
 };
 static_assert(sizeof(TREE) == sizeof(RecordHeader));
 
 class DOOR : public RecordHeader
 {
 public:
-  static constexpr auto type = "DOOR";
+  static constexpr auto kType = "DOOR";
 };
 static_assert(sizeof(DOOR) == sizeof(RecordHeader));
 
 class LVLI : public RecordHeader
 {
 public:
-  static constexpr auto type = "LVLI";
+  static constexpr auto kType = "LVLI";
 
   enum LeveledItemFlags
   {
@@ -398,7 +403,8 @@ public:
     Entry* entries = nullptr;
   };
 
-  Data GetData() const noexcept;
+  Data GetData(CompressedFieldsCache& compressedFieldsCache) const noexcept;
+  ;
 };
 static_assert(sizeof(LVLI) == sizeof(RecordHeader));
 static_assert(sizeof(LVLI::Entry) == 18);
@@ -406,7 +412,7 @@ static_assert(sizeof(LVLI::Entry) == 18);
 class NAVM : public RecordHeader
 {
 public:
-  static constexpr auto type = "NVNM";
+  static constexpr auto kType = "NVNM";
 
   class Vertices
   {
@@ -436,14 +442,15 @@ static_assert(sizeof(REFR) == sizeof(RecordHeader));
 class FLST : public RecordHeader
 {
 public:
-  static constexpr auto type = "FLST";
+  static constexpr auto kType = "FLST";
 
   struct Data
   {
     std::vector<uint32_t> formIds;
   };
 
-  Data GetData() const noexcept;
+  Data GetData(CompressedFieldsCache& compressedFieldsCache) const noexcept;
+  ;
 };
 static_assert(sizeof(FLST) == sizeof(RecordHeader));
 
@@ -568,9 +575,9 @@ struct Property
 using IterateFieldsCallback =
   std::function<void(const char* type, uint32_t size, const char* data)>;
 
-void IterateFields_(
-  const espm::RecordHeader* rec, const espm::IterateFieldsCallback& f,
-  espm::CompressedFieldsCache* compressedFieldsCache = nullptr);
+void IterateFields_(const espm::RecordHeader* rec,
+                    const espm::IterateFieldsCallback& f,
+                    espm::CompressedFieldsCache& compressedFieldsCache);
 
 struct Script
 {
@@ -589,21 +596,21 @@ struct ScriptData
 class ACTI : public RecordHeader
 {
 public:
-  static constexpr auto type = "ACTI";
+  static constexpr auto kType = "ACTI";
 
   struct Data
   {
     ScriptData scriptData;
   };
 
-  Data GetData() const noexcept;
+  Data GetData(CompressedFieldsCache& compressedFieldsCache) const noexcept;
 };
 static_assert(sizeof(ACTI) == sizeof(RecordHeader));
 
 class COBJ : public RecordHeader
 {
 public:
-  static constexpr auto type = "COBJ";
+  static constexpr auto kType = "COBJ";
 
   struct InputObject
   {
@@ -620,14 +627,14 @@ public:
     uint32_t outputCount = 0;
   };
 
-  Data GetData() const noexcept;
+  Data GetData(CompressedFieldsCache& compressedFieldsCache) const noexcept;
 };
 static_assert(sizeof(COBJ) == sizeof(RecordHeader));
 
 class OTFT : public RecordHeader
 {
 public:
-  static constexpr auto type = "OTFT";
+  static constexpr auto kType = "OTFT";
 
   struct Data
   {
@@ -635,14 +642,14 @@ public:
     uint32_t count = 0;
   };
 
-  Data GetData() const noexcept;
+  Data GetData(CompressedFieldsCache& compressedFieldsCache) const noexcept;
 };
 static_assert(sizeof(OTFT) == sizeof(RecordHeader));
 
 class NPC_ : public RecordHeader
 {
 public:
-  static constexpr auto type = "NPC_";
+  static constexpr auto kType = "NPC_";
 
   struct Faction
   {
@@ -658,6 +665,11 @@ public:
     std::vector<Faction> factions;
     bool isEssential = false;
     bool isProtected = false;
+    uint32_t race = 0;
+    uint16_t healthOffset = 0;
+    uint16_t magickaOffset = 0;
+    uint16_t staminaOffset = 0;
+    ObjectBounds objectBounds = {};
   };
 
   Data GetData(CompressedFieldsCache& compressedFieldsCache) const noexcept;
@@ -667,7 +679,7 @@ static_assert(sizeof(NPC_) == sizeof(RecordHeader));
 class WEAP : public RecordHeader
 {
 public:
-  static constexpr auto type = "WEAP";
+  static constexpr auto kType = "WEAP";
 
   struct WeapData
   {
@@ -677,13 +689,328 @@ public:
   };
   static_assert(sizeof(WeapData) == 10);
 
+  enum class AnimType : uint8_t
+  {
+    Other = 0,
+    OneHandSword = 1,
+    OneHandDagger = 2,
+    OneHandAxe = 3,
+    OneHandMace = 4,
+    TwoHandSword = 5,
+    TwoHandAxe = 6,
+    Bow = 7,
+    Staff = 8,
+    Crossbow = 9
+  };
+  static_assert(sizeof(AnimType) == 1);
+
+  struct DNAM
+  {
+    AnimType animType = AnimType::Other;
+    uint8_t unknown01 = 0;
+    uint16_t unknown02 = 0;
+    float speed = 0.f;
+    float reach = 0.f;
+    // 0C: flags, etc
+  };
+  static_assert(sizeof(DNAM) == 0x0c);
+
   struct Data
   {
     const WeapData* weapData = nullptr;
+    const DNAM* weapDNAM = nullptr;
   };
 
-  Data GetData() const noexcept;
+  Data GetData(CompressedFieldsCache& compressedFieldsCache) const noexcept;
 };
 static_assert(sizeof(WEAP) == sizeof(RecordHeader));
+
+class ARMO : public RecordHeader
+{
+public:
+  static constexpr auto kType = "ARMO";
+
+  struct Data
+  {
+    uint32_t baseRatingX100 = 0;
+    uint32_t baseValue = 0;
+    float weight = 0;
+    uint32_t enchantmentFormId = 0;
+  };
+
+  Data GetData(CompressedFieldsCache& compressedFieldsCache) const;
+};
+static_assert(sizeof(WEAP) == sizeof(RecordHeader));
+
+class RACE : public RecordHeader
+{
+public:
+  static constexpr auto kType = "RACE";
+
+  struct Data
+  {
+    float startingHealth = 0.f;
+    float startingMagicka = 0.f;
+    float startingStamina = 0.f;
+    float healRegen = 0.f;
+    float magickaRegen = 0.f;
+    float staminaRegen = 0.f;
+    float unarmedDamage = 0.f;
+    float unarmedReach = 0.f;
+  };
+
+  Data GetData(CompressedFieldsCache& compressedFieldsCache) const noexcept;
+};
+static_assert(sizeof(RACE) == sizeof(RecordHeader));
+
+// game settings
+class GMST : public RecordHeader
+{
+public:
+  static constexpr auto kType = "GMST";
+
+  static constexpr uint32_t kFCombatDistance = 0x00055640;
+  static constexpr uint32_t kFMaxArmorRating = 0x00037DEB;
+  static constexpr uint32_t kFArmorScalingFactor = 0x00021A72;
+
+  struct Data
+  {
+    float value = 0.f;
+  };
+
+  Data GetData(CompressedFieldsCache& compressedFieldsCache) const noexcept;
+};
+static_assert(sizeof(GMST) == sizeof(RecordHeader));
+
+struct Effects
+{
+public:
+  Effects(){};
+  Effects(const RecordHeader* parent);
+  const espm::RecordHeader* parent = nullptr;
+
+  struct Effect
+  {
+    uint32_t effectId = 0; // Corresponding MGEF record id
+    float magnitude = 0.f;
+    uint32_t areaOfEffect = 0;
+    uint32_t duration = 0;
+  };
+
+  struct Data
+  {
+    std::vector<Effect> effects;
+  };
+
+  Data GetData(CompressedFieldsCache& compressedFieldsCache) const noexcept;
+};
+
+class ENCH : public RecordHeader
+{
+public:
+  static constexpr auto kType = "ENCH";
+
+  struct Data
+  {
+    std::vector<espm::Effects::Effect> effects;
+  };
+
+  Data GetData(CompressedFieldsCache& compressedFieldsCache) const noexcept;
+};
+static_assert(sizeof(ENCH) == sizeof(RecordHeader));
+
+enum class ActorValue : int32_t
+{
+  None = -1,
+  Aggression,
+  Confidence,
+  Energy,
+  Morality,
+  Mood,
+  Assistance,
+  OneHanded,
+  TwoHanded,
+  Marksman,
+  Block,
+  Smithing,
+  HeavyArmor,
+  LightArmor,
+  Pickpocket,
+  Lockpicking,
+  Sneak,
+  Alchemy,
+  Speechcraft,
+  Alteration,
+  Conjuration,
+  Destruction,
+  Illusion,
+  Restoration,
+  Enchanting,
+  Health,
+  Magicka,
+  Stamina,
+  HealRate,
+  MagickaRate,
+  StaminaRate,
+  SpeedMult,
+  InventoryWeight,
+  CarryWeight,
+  CritChance,
+  MeleeDamage,
+  UnarmedDamage,
+  Mass,
+  VoicePoints,
+  VoiceRate,
+  DamageResist,
+  PoisonResist,
+  FireResist,
+  ElectricResist,
+  FrostResist,
+  MagicResist,
+  DiseaseResist,
+  PerceptionCondition,
+  EnduranceCondition,
+  LeftAttackCondition,
+  RightAttackCondition,
+  LeftMobilityCondition,
+  RightMobilityCondition,
+  BrainCondition,
+  Paralysis,
+  Invisibility,
+  NightEye,
+  DetectLifeRange,
+  WaterBreathing,
+  WaterWalking,
+  IgnoreCrippledLimbs,
+  Fame,
+  Infamy,
+  JumpingBonus,
+  WardPower,
+  RightItemCharge_or_EquippedItemCharge,
+  ArmorPerks,
+  ShieldPerks,
+  WardDeflection,
+  Variable01,
+  Variable02,
+  Variable03,
+  Variable04,
+  Variable05,
+  Variable06,
+  Variable07,
+  Variable08,
+  Variable09,
+  Variable10,
+  BowSpeedBonus,
+  FavorActive,
+  FavorsPerDay,
+  FavorsPerDayTimer,
+  LeftItemCharge_or_EquippedStaffCharge,
+  AbsorbChance,
+  Blindness,
+  WeaponSpeedMult,
+  ShoutRecoveryMult,
+  BowStaggerBonus,
+  Telekinesis,
+  FavorPointsBonus,
+  LastBribedIntimidated,
+  LastFlattered,
+  MovementNoiseMult,
+  BypassVendorStolenCheck,
+  BypassVendorKeywordCheck,
+  WaitingForPlayer,
+  OneHandedMod,
+  TwoHandedMod,
+  MarksmanMod,
+  BlockMod,
+  SmithingMod,
+  HeavyArmorMod,
+  LightArmorMod,
+  PickPocketMod,
+  LockpickingMod,
+  SneakMod,
+  AlchemyMod,
+  SpeechcraftMod,
+  AlterationMod,
+  ConjurationMod,
+  DestructionMod,
+  IllusionMod,
+  RestorationMod,
+  EnchantingMod,
+  OneHandedSkillAdvance,
+  TwoHandedSkillAdvance,
+  MarksmanSkillAdvance,
+  BlockSkillAdvance,
+  SmithingSkillAdvance,
+  HeavyArmorSkillAdvance,
+  LightArmorSkillAdvance,
+  PickPocketSkillAdvance,
+  LockpickingSkillAdvance,
+  SneakSkillAdvance,
+  AlchemySkillAdvance,
+  SpeechcraftSkillAdvance,
+  AlterationSkillAdvance,
+  ConjurationSkillAdvance,
+  DestructionSkillAdvance,
+  IllusionSkillAdvance,
+  RestorationSkillAdvance,
+  EnchantingSkillAdvance,
+  LeftWeaponSpeedMult,
+  DragonSouls,
+  CombatHealthRegenMult,
+  OneHandedPowerMod,
+  TwoHandedPowerMod,
+  MarksmanPowerMod,
+  BlockPowerMod,
+  SmithingPowerMod,
+  HeavyArmorPowerMod,
+  LightArmorPowerMod,
+  PickPocketPowerMod,
+  LockpickingPowerMod,
+  SneakPowerMod,
+  AlchemyPowerMod,
+  SpeechcraftPowerMod,
+  AlterationPowerMod,
+  ConjurationPowerMod,
+  DestructionPowerMod,
+  IllusionPowerMod,
+  RestorationPowerMod,
+  EnchantingPowerMod,
+  DragonRend,
+  AttackDamageMult,
+  HealRateMult_or_CombatHealthRegenMultMod,
+  MagickaRateMult_or_CombatHealthRegenMultPowerMod,
+  StaminaRateMult,
+  WerewolfPerks,
+  VampirePerks,
+  GrabActorOffset,
+  Grabbed,
+  DEPRECATED05,
+  ReflectDamage
+};
+
+class MGEF : public RecordHeader
+{
+public:
+  static constexpr auto kType = "MGEF";
+
+  struct DATA
+  {
+    // primary actor value
+    ActorValue primaryAV = espm::ActorValue::None;
+  };
+
+  struct Data
+  {
+    DATA data;
+  };
+
+  Data GetData(CompressedFieldsCache& compressedFieldsCache) const noexcept;
+};
+static_assert(sizeof(MGEF) == sizeof(RecordHeader));
+}
+
+namespace espm {
+uint32_t CalculateHashcode(const void* readBuffer, size_t length);
+uint32_t GetCorrectHashcode(const std::string& fileName);
 }
 #pragma pack(pop)

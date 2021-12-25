@@ -1,7 +1,6 @@
 enable_testing()
 
 include(${CMAKE_SOURCE_DIR}/cmake/apply_default_settings.cmake)
-include(${CMAKE_SOURCE_DIR}/cmake/add_papyrus_library_ck.cmake)
 
 #
 # MpClientPlugin
@@ -15,7 +14,7 @@ if(WIN32)
   set_target_properties(MpClientPlugin PROPERTIES OUTPUT_NAME "MpClientPlugin")
   apply_default_settings(TARGETS MpClientPlugin)
   list(APPEND VCPKG_DEPENDENT MpClientPlugin)
-  
+
   # Not mistake that skyrim-platform depends on MpClientPlugin
   # skyrim-platform is a logical target that invokes dev_service
   # dev_service wants to access built MpClientPlugin.dll
@@ -31,29 +30,6 @@ list(APPEND VCPKG_DEPENDENT espm)
 apply_default_settings(TARGETS espm)
 
 #
-# unit
-#
-
-file(GLOB_RECURSE src "${CMAKE_CURRENT_SOURCE_DIR}/unit/*")
-list(APPEND src "${CMAKE_SOURCE_DIR}/.clang-format")
-add_executable(unit ${src})
-target_link_libraries(unit PUBLIC server_guest_lib)
-target_include_directories(unit PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/mp_common")
-apply_default_settings(TARGETS unit)
-list(APPEND VCPKG_DEPENDENT unit)
-target_compile_definitions(unit PRIVATE
-  TEST_PEX_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/papyrus_test_files/standard_scripts\"
-  BUILT_PEX_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/papyrus_test_files/pex\"
-  SKYRIM_DIR=\"${SKYRIM_DIR}\"
-  UNIT_DATA_DIR=\"${UNIT_DATA_DIR}\"
-  DIST_DIR=\"${CMAKE_BINARY_DIR}/dist\"
-)
-if (WIN32)
-  target_compile_options(unit PRIVATE "/bigobj")
-endif()
-target_link_libraries(unit PUBLIC espm)
-
-#
 # mp_common
 #
 
@@ -65,7 +41,7 @@ target_include_directories(mp_common PUBLIC "${CMAKE_CURRENT_LIST_DIR}/mp_common
 target_include_directories(mp_common PUBLIC "${CMAKE_CURRENT_LIST_DIR}/third_party")
 apply_default_settings(TARGETS mp_common)
 list(APPEND VCPKG_DEPENDENT mp_common)
-if (WIN32)
+if(WIN32)
   target_link_libraries(mp_common PUBLIC ws2_32.lib)
 endif()
 
@@ -89,7 +65,7 @@ add_library(server_guest_lib STATIC ${src})
 target_include_directories(server_guest_lib PUBLIC "${CMAKE_CURRENT_LIST_DIR}/server_guest_lib")
 apply_default_settings(TARGETS server_guest_lib)
 list(APPEND VCPKG_DEPENDENT server_guest_lib)
-target_link_libraries(server_guest_lib PUBLIC mp_common espm papyrus-vm-lib geo)
+target_link_libraries(server_guest_lib PUBLIC viet mp_common espm papyrus-vm-lib geo)
 target_include_directories(server_guest_lib PUBLIC "${CMAKE_SOURCE_DIR}/chakra-wrapper")
 
 #
@@ -105,42 +81,7 @@ target_include_directories(papyrus-vm-lib PUBLIC "${CMAKE_CURRENT_LIST_DIR}/thir
 if(UNIX)
   target_link_libraries(papyrus-vm-lib PUBLIC stdc++fs)
 endif()
-
-#
-# papyrus_test_files
-#
-
-if(NOT SKYRIM_DIR)
-  message(WARNING "SKYRIM_DIR is not specified, Papyrus sources will not be built")
-elseif(NOT EXISTS "${SKYRIM_DIR}/Papyrus compiler/PapyrusCompiler.exe")
-  message(WARNING "PapyrusCompiler.exe not found, Papyrus sources will not be built")
-else()
-  add_papyrus_library_ck(
-    NAME papyrus_test_files 
-    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/papyrus_test_files
-    OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/papyrus_test_files/pex
-    COMPILER_EXECUTABLE_PATH "${SKYRIM_DIR}/Papyrus compiler/PapyrusCompiler.exe"
-  )
-endif()
-
-#
-# Add tests
-#
-if(CPPCOV_PATH)
-  set(CPPCOV ON)
-else()
-  set(CPPCOV OFF)
-endif()
-
-add_test(
-  NAME test_unit
-  COMMAND ${CMAKE_COMMAND}
-    -DEXE_PATH=$<TARGET_FILE:unit>
-    -DCOVERAGE_HTML_OUT_DIR=${CMAKE_BINARY_DIR}/__coverage
-    -DCPPCOV=${CPPCOV}
-    -DCPPCOV_PATH=${CPPCOV_PATH}
-    -P ${CMAKE_SOURCE_DIR}/cmake/run_test_unit.cmake
-)
+target_link_libraries(papyrus-vm-lib PUBLIC viet)
 
 #
 # Link vcpkg deps
@@ -190,19 +131,12 @@ foreach(target ${VCPKG_DEPENDENT})
   find_package(ZLIB REQUIRED)
   target_link_libraries(${target} PUBLIC ZLIB::ZLIB)
 
-  find_package(SqliteOrm CONFIG REQUIRED)
-  target_link_libraries(${target} PUBLIC sqlite_orm::sqlite_orm)
-
-  find_package(unofficial-sqlite3 CONFIG REQUIRED)
-  target_link_libraries(${target} PUBLIC unofficial::sqlite3::sqlite3)
-
-  find_package(libmongocxx REQUIRED)
-  find_package(libbsoncxx REQUIRED)
-  find_package(libmongoc-1.0 CONFIG REQUIRED)
-  target_link_libraries(${target} PUBLIC ${LIBMONGOCXX_LIBRARIES} ${LIBBSONCXX_LIBRARIES} ${MONGOC_LIBRARIES} ${MONGOC_STATIC_LIBRARIES})
+  find_package(mongocxx REQUIRED)
+  find_package(mongoc-1.0 CONFIG REQUIRED)
+  target_link_libraries(${target} PUBLIC mongo::mongocxx_static mongo::bsoncxx_static mongo::mongoc_static mongo::bson_static)
   find_package(OpenSSL REQUIRED)
   target_link_libraries(${target} PUBLIC OpenSSL::SSL OpenSSL::Crypto)
-  
+
   if(UNIX)
     target_link_libraries(${target} PUBLIC pthread resolv rt m)
   endif()

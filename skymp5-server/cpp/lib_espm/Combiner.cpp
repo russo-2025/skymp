@@ -61,13 +61,16 @@ std::unique_ptr<espm::CombineBrowser> espm::Combiner::Combine()
 
   for (size_t i = 0; i < pImpl->numSources; ++i) {
     auto& src = pImpl->sources[i];
-    if (src.br == nullptr)
+    if (!src.br) {
       throw CombineError("nullptr source with index " + std::to_string(i));
+    }
 
     const auto tes4 = espm::Convert<espm::TES4>(src.br->LookupById(0));
-    if (!tes4)
+    if (!tes4) {
       throw CombineError(src.fileName + " doesn't have TES4 record");
-    const auto masters = tes4->GetData().masters;
+    }
+    espm::CompressedFieldsCache dummyCache;
+    const auto masters = tes4->GetData(dummyCache).masters;
 
     auto toComb = std::make_unique<IdMapping>();
     toComb->fill(0xff);
@@ -76,9 +79,10 @@ std::unique_ptr<espm::CombineBrowser> espm::Combiner::Combine()
     size_t m = 0;
     for (m = 0; m < masters.size(); ++m) {
       const int globalIdx = pImpl->GetFileIndex(masters[m]);
-      if (globalIdx == -1)
+      if (globalIdx == -1) {
         throw CombineError(src.fileName + " has unresolved dependency (" +
                            masters[m] + ")");
+      }
       (*toComb)[m] = (uint8_t)globalIdx;
       (*toRaw)[globalIdx] = (uint8_t)m;
     }
@@ -97,7 +101,7 @@ uint32_t espm::BrowserInfo::ToGlobalId(uint32_t rawId) const noexcept
 {
   if (!parent)
     return 0;
-  const auto mapping = parent->GetMapping(fileIdx);
+  const auto mapping = parent->GetCombMapping(fileIdx);
   return espm::GetMappedId(rawId, *mapping);
 }
 
@@ -177,12 +181,20 @@ espm::CombineBrowser::GetRecordsAtPos(uint32_t cellOrWorld, int16_t cellX,
   return res;
 }
 
-const espm::IdMapping* espm::CombineBrowser::GetMapping(
+const espm::IdMapping* espm::CombineBrowser::GetCombMapping(
   size_t fileIndex) const noexcept
 {
   if (fileIndex >= pImpl->numSources)
     return nullptr;
   return pImpl->sources[fileIndex].toComb.get();
+}
+
+const espm::IdMapping* espm::CombineBrowser::GetRawMapping(
+  size_t fileIndex) const noexcept
+{
+  if (fileIndex >= pImpl->numSources)
+    return nullptr;
+  return pImpl->sources[fileIndex].toRaw.get();
 }
 
 espm::CompressedFieldsCache& espm::CombineBrowser::GetCache() const noexcept

@@ -1,13 +1,12 @@
 #include "TPOverlayService.h"
-
-#include <cef/ui/MyChromiumApp.hpp>
-
-#include <D3D11Hook.hpp>
-
-#include <cef/ui/DX11RenderHandler.hpp>
-#include <cef/ui/MyRenderHandler.hpp>
-
 #include "TPRenderSystemD3D11.h"
+#include <D3D11Hook.hpp>
+#include <functional>
+#include <ui/DX11RenderHandler.h>
+#include <ui/MyChromiumApp.h>
+#include <ui/MyRenderHandler.h>
+#include <ui/ProcessMessageListener.h>
+#include <ui/TextToDraw.h>
 
 using CEFUtils::DX11RenderHandler;
 using CEFUtils::MyRenderHandler;
@@ -37,7 +36,11 @@ private:
   RenderSystemD3D11* m_pRenderSystem;
 };
 
-OverlayService::OverlayService()
+OverlayService::OverlayService(
+  std::shared_ptr<ProcessMessageListener> onProcessMessage_,
+  const ObtainTextsToDrawFunction& obtainTextsToDraw_)
+  : onProcessMessage(onProcessMessage_)
+  , obtainTextsToDraw(obtainTextsToDraw_)
 {
 }
 
@@ -47,18 +50,18 @@ OverlayService::~OverlayService() noexcept
 
 void OverlayService::Create(RenderSystemD3D11* apRenderSystem)
 {
-  m_pOverlay =
-    new MyChromiumApp(std::make_unique<D3D11RenderProvider>(apRenderSystem));
-  m_pOverlay->Initialize();
-  m_pOverlay->GetClient()->Create();
+  auto renderProvider = std::make_unique<D3D11RenderProvider>(apRenderSystem);
+  overlay = new MyChromiumApp(std::move(renderProvider), onProcessMessage);
+  overlay->Initialize();
+  overlay->GetClient()->Create();
 }
 
 void OverlayService::Render() const
 {
-  m_pOverlay->GetClient()->Render();
+  overlay->GetClient()->Render(obtainTextsToDraw);
 }
 
 void OverlayService::Reset() const
 {
-  m_pOverlay->GetClient()->Reset();
+  overlay->GetClient()->Reset();
 }

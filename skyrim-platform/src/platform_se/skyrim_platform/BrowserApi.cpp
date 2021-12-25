@@ -1,9 +1,9 @@
 #include "BrowserApi.h"
 #include "NullPointerException.h"
-#include <cef/hooks/DInputHook.hpp>
-#include <cef/ui/DX11RenderHandler.hpp>
-#include <cef/ui/MyChromiumApp.hpp>
+#include <hooks/DInputHook.hpp>
 #include <skse64/GameMenus.h>
+#include <ui/DX11RenderHandler.h>
+#include <ui/MyChromiumApp.h>
 
 namespace {
 thread_local bool g_cursorIsOpenByFocus = false;
@@ -27,6 +27,11 @@ JsValue BrowserApi::SetVisible(const JsFunctionArguments& args)
   bool& v = CEFUtils::DX11RenderHandler::Visible();
   v = (bool)args[1];
   return JsValue::Undefined();
+}
+
+JsValue BrowserApi::IsVisible(const JsFunctionArguments& args)
+{
+  return JsValue::Bool(CEFUtils::DX11RenderHandler::Visible());
 }
 
 JsValue BrowserApi::SetFocused(const JsFunctionArguments& args)
@@ -58,6 +63,11 @@ JsValue BrowserApi::SetFocused(const JsFunctionArguments& args)
     }
   }
   return JsValue::Undefined();
+}
+
+JsValue BrowserApi::IsFocused(const JsFunctionArguments& args)
+{
+  return JsValue::Bool(CEFUtils::DInputHook::ChromeFocus());
 }
 
 JsValue BrowserApi::LoadUrl(const JsFunctionArguments& args,

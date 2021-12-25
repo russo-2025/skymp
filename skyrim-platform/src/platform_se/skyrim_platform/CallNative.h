@@ -32,7 +32,10 @@ private:
 };
 
 using ObjectPtr = std::shared_ptr<Object>;
-using AnySafe = std::variant<ObjectPtr, double, bool, std::string>;
+using AnySafe =
+  std::variant<ObjectPtr, double, bool, std::string, std::vector<double>,
+               std::vector<std::string>, std::vector<bool>,
+               std::vector<CallNative::ObjectPtr>>;
 
 template <class T>
 static inline size_t GetIndexFor()
@@ -56,8 +59,8 @@ struct Arguments
   const AnySafe* args;
   size_t numArgs;
   FunctionInfoProvider& provider;
-  TaskQueue& gameThrQ;
-  TaskQueue& jsThrQ;
+  Viet::TaskQueue& gameThrQ;
+  Viet::TaskQueue& jsThrQ;
   LatentCallback latentCallback;
 };
 

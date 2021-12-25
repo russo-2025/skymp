@@ -32,8 +32,8 @@ enum class PacketType
 class IClient
 {
 public:
-  typedef void (*OnPacket)(void* state, PacketType packetType, PacketData data,
-                           size_t length, const char* error);
+  using OnPacket = void (*)(void* state, PacketType packetType,
+                            PacketData data, size_t length, const char* error);
 
   virtual ~IClient() = default;
 
@@ -45,6 +45,8 @@ public:
 class ISendTarget
 {
 public:
+  virtual ~ISendTarget() = default;
+
   virtual void Send(UserId targetUserId, PacketData data, size_t length,
                     bool reliable) = 0;
 };

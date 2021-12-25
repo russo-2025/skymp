@@ -64,9 +64,17 @@ const watchCallback = (_eventType, fileName) => {
         game.kill();
       }
 
-      if (fs.existsSync(distDir)) {
-        fs.removeSync(distDir);
-      }
+      // All except "Plugins" since we need RestartGame target to keep Plugins directory alive in watch mode
+      const directoriesToClear = [
+        path.join(distDir, "Data/Platform/Distribution"),
+        path.join(distDir, "Data/Platform/Modules"),
+        path.join(distDir, "Data/Platform/plugin-example"),
+      ];
+      directoriesToClear.forEach((directory) => {
+        if (fs.existsSync(directory)) {
+          fs.removeSync(directory);
+        }
+      });
       createDirectory(distDir);
       let getFileName = (p) => p.replace(/^.*[\\\/]/, "");
       let cp = (from, targetDir) =>
@@ -133,7 +141,7 @@ const watchCallback = (_eventType, fileName) => {
           path.join(distDir, "Data/Platform/Distribution/RuntimeDependencies")
         );
         cp(
-          binPath("SkyrimPlatformCEF.exe"),
+          binPath("SkyrimPlatformCEF.exe.hidden"),
           path.join(distDir, "Data/Platform/Distribution/RuntimeDependencies")
         );
         cp(binPath("SkyrimPlatformCEF.pdb"), distDir);
@@ -164,14 +172,15 @@ const watchCallback = (_eventType, fileName) => {
           path.join(sourceDir, "tools/plugin-example"),
           path.join(distDir, "Data/Platform/plugin-example")
         );
-        fs.copySync(path.join(sourceDir, "requirements"), distDir);
         fs.removeSync(
           path.join(distDir, "Data/Platform/plugin-example/node_modules")
         );
         fs.removeSync(path.join(distDir, "Data/Platform/plugin-example/dist"));
 
         if (!process.env.DEV_SERVICE_NO_GAME) {
-          fs.copySync(distDir, config.SkyrimSEFolder);
+          if (config.SkyrimSEFolder !== "OFF" && config.SkyrimSEFolder !== "") {
+            fs.copySync(distDir, config.SkyrimSEFolder);
+          }
         }
 
         // No need to release pdb to the public
@@ -188,8 +197,13 @@ const watchCallback = (_eventType, fileName) => {
       );
 
       if (!process.env.DEV_SERVICE_NO_GAME) {
-        console.log(`Starting ${config.SkyrimSEFolder}`);
-        game.launch(config.SkyrimSEFolder).catch((e) => console.error(e));
+        if (config.SkyrimSEFolder === "OFF" || config.SkyrimSEFolder === "") {
+          console.log(`It seems that you didn't specify SKYRIM_DIR CMake option. The game will not be restarted.`);
+        }
+        else {
+          console.log(`Starting ${config.SkyrimSEFolder}`);
+          game.launch(config.SkyrimSEFolder).catch((e) => console.error(e));
+        }
       }
     }
   }

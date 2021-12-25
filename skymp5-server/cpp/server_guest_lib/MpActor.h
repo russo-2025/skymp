@@ -1,5 +1,5 @@
 #pragma once
-#include "Look.h"
+#include "Appearance.h"
 #include "MpObjectReference.h"
 #include "Structures.h"
 #include <memory>
@@ -18,13 +18,18 @@ public:
           const FormCallbacks& calbacks_, uint32_t optBaseId = 0);
 
   const bool& IsRaceMenuOpen() const;
-  std::unique_ptr<const Look> GetLook() const;
-  const std::string& GetLookAsJson();
-  const std::string& GetEquipmentAsJson();
+  const bool& IsDead() const;
+  const bool& IsRespawning() const;
+  std::unique_ptr<const Appearance> GetAppearance() const;
+  const std::string& GetAppearanceAsJson();
+  const std::string& GetEquipmentAsJson() const;
+  Equipment GetEquipment() const;
+  uint32_t GetRaceId() const;
   bool IsWeaponDrawn() const;
+  espm::ObjectBounds GetBounds() const;
 
   void SetRaceMenuOpen(bool isOpen);
-  void SetLook(const Look* newLook);
+  void SetAppearance(const Appearance* newAppearance);
   void SetEquipment(const std::string& jsonString);
 
   void VisitProperties(const PropertiesVisitor& visitor,
@@ -51,12 +56,42 @@ public:
     std::optional<Viet::Promise<VarValue>> promise = std::nullopt);
 
   void ResolveSnippet(uint32_t snippetIdx, VarValue v);
+  void SetPercentages(float healthPercentage, float magickaPercentage,
+                      float staminaPercentage, MpActor* aggressor = nullptr);
+
+  std::chrono::steady_clock::time_point GetLastAttributesPercentagesUpdate();
+  std::chrono::steady_clock::time_point GetLastHitTime();
+
+  void SetLastAttributesPercentagesUpdate(
+    std::chrono::steady_clock::time_point timePoint =
+      std::chrono::steady_clock::now());
+  void SetLastHitTime(std::chrono::steady_clock::time_point timePoint =
+                        std::chrono::steady_clock::now());
+
+  std::chrono::duration<float> GetDurationOfAttributesPercentagesUpdate(
+    std::chrono::steady_clock::time_point now);
+
+  void Kill(MpActor* killer = nullptr, bool shouldTeleport = false);
+  void Respawn(bool shouldTeleport = true);
+  void RespawnWithDelay(bool shouldTeleport = true);
+  void Teleport(const LocationalData& position);
+  void SetSpawnPoint(const LocationalData& position);
+  LocationalData GetSpawnPoint() const;
+  const float GetRespawnTime() const;
+  void SetRespawnTime(float time);
+
+  void SetIsDead(bool isDead);
 
 private:
   std::set<std::shared_ptr<DestroyEventSink>> destroyEventSinks;
 
   struct Impl;
   std::shared_ptr<Impl> pImpl;
+
+  void SendAndSetDeathState(bool isDead, bool shouldTeleport);
+  std::string GetDeathStateMsg(const LocationalData& position, bool isDead,
+                               bool shouldTeleport);
+  void MpApiDeath(MpActor* killer = nullptr);
 
 protected:
   void BeforeDestroy() override;

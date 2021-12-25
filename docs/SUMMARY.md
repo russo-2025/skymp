@@ -2,6 +2,10 @@
 
 - [Home](README.md)
 
+## Project History
+
+- [Project History](docs_project_history.md)
+
 ## Working With SkyMP Source Code
 
 - [Cpp Code Guidelines](docs_cpp_code_guidelines.md)
@@ -27,3 +31,7 @@
 - [Events System](docs_events_system.md)
 - [Skyrim Platform](docs_skyrim_platform.md)
 - [Server Data Directory](docs_server_data_directory.md)
+
+## Game Mechanics
+
+- [Damage calculation and hit handling](docs_onhit_and_damage.md)
