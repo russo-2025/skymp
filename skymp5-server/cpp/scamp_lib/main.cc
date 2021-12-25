@@ -38,12 +38,11 @@
 #include <string>
 #include <iostream>
 
-namespace ScampLib {
-    typedef void onConnectFn(Networking::UserId userId);
-    typedef void onDisconnectFn(Networking::UserId userId);
-    typedef void OnCustomPacketFn(Networking::UserId userId, char* json_data);
-    typedef void OnMpApiEventFn(char* eventName, char* args, uint32_t formId);
-}
+#define SCAMPLIB_IMPLEMENTATION
+#include "ScampLib.h"
+
+
+SLString(*CreateString) (char* cstr);
 
 class ScampServerListener : public PartOne::Listener
 {
@@ -55,19 +54,19 @@ public:
         mpApiEvent = [](char* eventName, char* args, uint32_t formId) {};
     }
 
-    void setConnectHandler(ScampLib::onConnectFn* handler) {
+    void setConnectHandler(onConnectFn* handler) {
         connect = handler;
     }
 
-    void setDisconnectHandler(ScampLib::onDisconnectFn* handler) {
+    void setDisconnectHandler(onDisconnectFn* handler) {
         disconnect = handler;
     }
 
-    void setCustomPacketHandler(ScampLib::OnCustomPacketFn* handler) {
+    void setCustomPacketHandler(OnCustomPacketFn* handler) {
         customPacket = handler;
     }
 
-    void setMpApiEventHandler(ScampLib::OnMpApiEventFn* handler) {
+    void setMpApiEventHandler(OnMpApiEventFn* handler) {
         mpApiEvent = handler;
     }
 
@@ -98,10 +97,10 @@ public:
         return true;
     }
 
-    ScampLib::onConnectFn* connect;
-    ScampLib::onDisconnectFn* disconnect;
-    ScampLib::OnCustomPacketFn* customPacket; 
-    ScampLib::OnMpApiEventFn* mpApiEvent;
+    onConnectFn* connect;
+    onDisconnectFn* disconnect;
+    OnCustomPacketFn* customPacket; 
+    OnMpApiEventFn* mpApiEvent;
 };
 
 class ScampServer {
@@ -187,7 +186,11 @@ std::shared_ptr<ISaveStorage> CreateSaveStorage(std::shared_ptr<IDatabase> db, s
 }
 
 extern "C" {
-    __declspec(dllexport) ScampServer* CreateServer(uint32_t port, uint32_t maxConnections)
+    SLExport void Init(UtilsApi* utilsApi) {
+        CreateString = utilsApi->CreateString;
+    }
+
+    SLExport ScampServer* CreateServer(uint32_t port, uint32_t maxConnections)
     {
         ScampServer* ss = new ScampServer();
 
@@ -261,19 +264,19 @@ extern "C" {
         return ss;
     }
 
-    __declspec(dllexport) void SetConnectHandler(ScampServer* ss, ScampLib::onConnectFn* handler) {
+    SLExport void SetConnectHandler(ScampServer* ss, onConnectFn* handler) {
         ss->listener->setConnectHandler(handler);
     }
 
-    __declspec(dllexport) void SetDisconnectHandler(ScampServer* ss, ScampLib::onDisconnectFn* handler) {
+    SLExport void SetDisconnectHandler(ScampServer* ss, onDisconnectFn* handler) {
         ss->listener->setDisconnectHandler(handler);
     }
 
-    __declspec(dllexport) void SetCustomPacketHandler(ScampServer* ss, ScampLib::OnCustomPacketFn* handler) {
+    SLExport void SetCustomPacketHandler(ScampServer* ss, OnCustomPacketFn* handler) {
         ss->listener->setCustomPacketHandler(handler);
     }
 
-    __declspec(dllexport) void SetMpApiEventHandler(ScampServer* ss, ScampLib::OnMpApiEventFn* handler) {
+    SLExport void SetMpApiEventHandler(ScampServer* ss, OnMpApiEventFn* handler) {
         ss->listener->setMpApiEventHandler(handler);
     }
 
@@ -300,63 +303,56 @@ extern "C" {
     ScampServer::Clear
     */
 
-    struct Position {
-        float x;
-        float y;
-        float z;
-    };
-
-
-    __declspec(dllexport) void Tick(ScampServer* ss)
+    SLExport void Tick(ScampServer* ss)
     {
         ss->server->Tick(PartOne::HandlePacket, ss->partOne.get());
         ss->partOne->Tick();
     }
 
-    __declspec(dllexport) uint32_t CreateActor(ScampServer* ss, uint32_t formId, Position vpos, float angleZ, uint32_t cellOrWorld, int32_t profileId)
+    SLExport uint32_t CreateActor(ScampServer* ss, uint32_t formId, Position vpos, float angleZ, uint32_t cellOrWorld, int32_t profileId)
     {
          NiPoint3 pos = NiPoint3(vpos.x, vpos.y, vpos.z);
         return ss->partOne->CreateActor(formId, pos, angleZ, cellOrWorld, profileId);
     }
 
-    __declspec(dllexport) void SetUserActor(ScampServer* ss, Networking::UserId userId, uint32_t actorFormId)
+    SLExport void SetUserActor(ScampServer* ss, Networking::UserId userId, uint32_t actorFormId)
     {
         ss->partOne->SetUserActor(userId, actorFormId);
     }
 
-    __declspec(dllexport) uint32_t GetUserActor(ScampServer* ss, Networking::UserId userId)
+    SLExport uint32_t GetUserActor(ScampServer* ss, Networking::UserId userId)
     {
         return ss->partOne->GetUserActor(userId);
     }
 
-    __declspec(dllexport) const char* GetActorName(ScampServer* ss, uint32_t actorFormId)
+    SLExport char* GetActorName(ScampServer* ss, uint32_t actorFormId)
     {
-        return ss->partOne->GetActorName(actorFormId).c_str();
+        return (char*)ss->partOne->GetActorName(actorFormId).c_str();
     }
 
-    __declspec(dllexport) Position GetActorPos(ScampServer* ss, uint32_t actorFormId)
+    SLExport Position GetActorPos(ScampServer* ss, uint32_t actorFormId)
     {
         auto res = ss->partOne->GetActorPos(actorFormId);
         Position pos = { res[0], res[1], res[2] };
         return pos;
     }
 
-    __declspec(dllexport) uint32_t GetActorCellOrWorld(ScampServer* ss, uint32_t actorFormId)
+    SLExport uint32_t GetActorCellOrWorld(ScampServer* ss, uint32_t actorFormId)
     {
         return ss->partOne->GetActorCellOrWorld(actorFormId);
     }
 
-    __declspec(dllexport) void DestroyActor(ScampServer* ss, uint32_t actorFormId)
+    SLExport void DestroyActor(ScampServer* ss, uint32_t actorFormId)
     {
         ss->partOne->DestroyActor(actorFormId);
     }
 
-    __declspec(dllexport) void SetRaceMenuOpen(ScampServer* ss, uint32_t actorFormId, bool open)
+    SLExport void SetRaceMenuOpen(ScampServer* ss, uint32_t actorFormId, bool open)
     {
         ss->partOne->SetRaceMenuOpen(actorFormId, open);
     }
 
-    __declspec(dllexport) uint32_t* GetActorsByProfileId(ScampServer* ss, ProfileId profileId, size_t * result_len)
+    SLExport uint32_t* GetActorsByProfileId(ScampServer* ss, ProfileId profileId, size_t * result_len)
     {
         std::set<uint32_t> res = ss->partOne->GetActorsByProfileId(profileId);
 
@@ -381,25 +377,24 @@ extern "C" {
         }
     }
 
-    __declspec(dllexport) void SetEnabled(ScampServer* ss, uint32_t actorFormId, bool enabled)
+    SLExport void SetEnabled(ScampServer* ss, uint32_t actorFormId, bool enabled)
     {
         ss->partOne->SetEnabled(actorFormId, enabled);
     }
 
-    __declspec(dllexport) Networking::UserId GetUserByActor(ScampServer* ss, uint32_t formId)
+    SLExport Networking::UserId GetUserByActor(ScampServer* ss, uint32_t formId)
     {
         return ss->partOne->GetUserByActor(formId);
     }
 
-    __declspec(dllexport) void AttachSaveStorage(ScampServer* ss)
+    SLExport void AttachSaveStorage(ScampServer* ss)
     {
         ss->partOne->AttachSaveStorage(CreateSaveStorage(CreateDatabase(ss->serverSettings, ss->logger), ss->logger));
     }
 
-    __declspec(dllexport) void SendCustomPacket(ScampServer* ss, Networking::UserId userId, char* data)
+    SLExport void SendCustomPacket(ScampServer* ss, Networking::UserId userId, char* data)
     {
-        std::string content = std::string(data);
-        ss->partOne->SendCustomPacket(userId, content);
+        ss->partOne->SendCustomPacket(userId, data);
     }
 
     /*
@@ -459,12 +454,12 @@ extern "C" {
     readDataFile
     */
 
-    __declspec(dllexport) void Clear(ScampServer* ss) {
+    SLExport void Clear(ScampServer* ss) {
         ss->gamemodeApiState = GamemodeApi::State();
         ss->partOne->NotifyGamemodeApiStateChanged(ss->gamemodeApiState);
     }
 
-    __declspec(dllexport) void MakeEventSource(ScampServer* ss, char* eventName, char* functionBody) {
+    SLExport void MakeEventSource(ScampServer* ss, char* eventName, char* functionBody) {
         std::string _eventName = std::string(eventName);
 
         if (ss->gamemodeApiState.createdEventSources.count(_eventName)) {
@@ -476,10 +471,10 @@ extern "C" {
     }
 
     /*
-    __declspec(dllexport) void GetOnlinePlayers(ScampServer* ss, uint32_t formId) {
+    SLExport void GetOnlinePlayers(ScampServer* ss, uint32_t formId) {
     }
 
-    __declspec(dllexport) void GetOnlinePlayers(ScampServer* ss, uint32_t formId) {
+    SLExport void GetOnlinePlayers(ScampServer* ss, uint32_t formId) {
     }*/
 
     /*
@@ -500,30 +495,30 @@ extern "C" {
     typedef VarValue** VmFunctionArgs;
     typedef VarValue* (*VmFunction)(VmFunctionArgs args, size_t args_len);
 
-    __declspec(dllexport) VmValue VmValueCreateBool(bool val) {
+    SLExport VmValue VmValueCreateBool(bool val) {
         return new VarValue(val);
     }
 
-    __declspec(dllexport) VmValue VmValueCreateInt(int32_t val) {
+    SLExport VmValue VmValueCreateInt(int32_t val) {
         return new VarValue(val);
     }
 
-    __declspec(dllexport) VmValue VmValueCreateFloat(double val) {
+    SLExport VmValue VmValueCreateFloat(double val) {
         return new VarValue(val);
     }
 
-    __declspec(dllexport) VmValue VmValueCreateString(char* val) {
+    SLExport VmValue VmValueCreateString(char* val) {
         return new VarValue(val);
     }
 
-    __declspec(dllexport) VmValue VmValueCreateNone() {
+    SLExport VmValue VmValueCreateNone() {
         return new VarValue(VarValue::None());
     }
 
-    __declspec(dllexport) void RegisterVmFunction(ScampServer* ss, char* className, char* funcName, FunctionType funcType, VmFunction f) {
+    SLExport void RegisterVmFunction(ScampServer* ss, char* className, char* funcName, FunctionType funcType, VmFunction f) {
         auto& vm = ss->partOne->worldState.GetPapyrusVm();
         
-        vm.RegisterFunction(std::string(className), std::string(funcName), funcType,
+        vm.RegisterFunction(className, funcName, funcType,
             [f](const VarValue& self, const std::vector<VarValue>& args) {
                 VmFunctionArgs arr = new VmValue[args.size() + 1];
 
@@ -538,7 +533,7 @@ extern "C" {
         );
     }
 
-    __declspec(dllexport) VmValue CallVmFunction(ScampServer* ss, FunctionType funcType, char* className, char* funcName, VmFunctionArgs args, size_t args_len) {
+    SLExport VmValue CallVmFunction(ScampServer* ss, FunctionType funcType, char* className, char* funcName, VmFunctionArgs args, size_t args_len) {
         auto& vm = ss->partOne->worldState.GetPapyrusVm();
 
 
