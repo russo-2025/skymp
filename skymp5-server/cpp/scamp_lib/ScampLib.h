@@ -18,12 +18,6 @@ struct Position {
     float z;
 };
 
-typedef void* SLString;
-
-typedef struct {
-    SLString(*CreateString)(char* cstr);
-} UtilsApi;
-
 typedef void onConnectFn(unsigned short userId);
 typedef void onDisconnectFn(unsigned short userId);
 typedef void OnCustomPacketFn(unsigned short userId, char* content);
@@ -33,8 +27,9 @@ typedef void OnMpApiEventFn(char* eventName, char* args, uint32_t formId);
 extern "C" {
 #endif
 
-SLExport void Init(UtilsApi* utilsApi);
 SLExport ScampServer* CreateServer(uint32_t port, uint32_t maxConnections);
+
+//ScampServer
 SLExport void SetConnectHandler(ScampServer* ss, onConnectFn* handler);
 SLExport void SetDisconnectHandler(ScampServer* ss, onDisconnectFn* handler);
 SLExport void SetCustomPacketHandler(ScampServer* ss, OnCustomPacketFn* handler);
