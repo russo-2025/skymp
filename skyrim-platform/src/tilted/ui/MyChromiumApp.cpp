@@ -3,6 +3,7 @@
 #include <MyChromiumApp.h>
 #include <filesystem>
 #include <fstream>
+#include "Config.h"
 
 #include <random>
 #include <string>
@@ -67,7 +68,9 @@ void MyChromiumApp::Initialize() noexcept
   settings.log_severity = LOGSEVERITY_VERBOSE;
 #else
   settings.log_severity = LOGSEVERITY_VERBOSE;
+#ifndef __DISABLE_CEF_DEBUG_PORT
   settings.remote_debugging_port = 9000;
+#endif
 #endif
 
   CefString(&settings.log_file)

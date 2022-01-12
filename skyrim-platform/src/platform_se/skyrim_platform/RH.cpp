@@ -1,4 +1,5 @@
 ﻿#include "RH.h"
+#include "Config.h"
 
 // DisableConsole
 // DisableDoubleSpeed
@@ -167,7 +168,9 @@ void DisableModMenu()
 
 void Init()
 {
+#ifdef __DISABLE_CONSOLE
   DisableConsole();
+#endif // __DISABLE_CONSOLE
   DisableModMenu();
   DevApi::DisableCtrlPrtScnHotkey();
 }

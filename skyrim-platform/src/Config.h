@@ -1,0 +1,6 @@
+#pragma once
+
+#define __LOAD_SKYMP_CLIENT_FROM_SERVER
+#define __DISABLE_CONSOLE
+#define __DISABLE_SHOW_ME
+#define __DISABLE_CEF_DEBUG_PORT

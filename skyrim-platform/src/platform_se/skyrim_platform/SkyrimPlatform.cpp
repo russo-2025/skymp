@@ -25,6 +25,7 @@
 #include "BrowserApi.h"
 #include "CallNativeApi.h"
 #include "CameraApi.h"
+#include "Config.h"
 #include "ConsoleApi.h"
 #include "DevApi.h"
 #include "EncodingApi.h"
@@ -104,6 +105,7 @@ public:
   void Tick() override
   {
     try {
+#ifdef __LOAD_SKYMP_CLIENT_FROM_SERVER
       ++tickId;
 
       const bool startupLoad = tickId == 1;
@@ -111,7 +113,7 @@ public:
       if (startupLoad) {
         ClearState();
 
-        auto& engine = GetJsEngine(); //fuck
+        auto& engine = GetJsEngine(); // init js engine
 
         LoadSettingsFile("Data/Platform/Plugins/skymp5-client-settings.txt");
 
@@ -124,27 +126,57 @@ public:
         std::string host = ip + ":" + std::to_string(uiport);
         std::string path = "/dist_front/skymp5-client.js";
 
-        RE::ConsoleLog::GetSingleton()->Print("[Native] requesting skymp5-client.js from server");
+        RE::ConsoleLog::GetSingleton()->Print(
+          "[Native] requesting skymp5-client.js from server");
 
-        HttpClientApi::GetHttpClient().Get(host.c_str(), path.c_str(), headers,
+        HttpClientApi::GetHttpClient().Get(
+          host.c_str(), path.c_str(), headers,
           [=](HttpClient::HttpResult res) -> void {
-            if (res.status)
-            {
-              RE::ConsoleLog::GetSingleton()->Print("[Native] skymp5-client.js loaded");
-              std::string scriptSrc = std::string((const char*)res.body.data(), res.body.size());
+            if (res.status) {
+              RE::ConsoleLog::GetSingleton()->Print(
+                "[Native] skymp5-client.js loaded");
+              std::string scriptSrc =
+                std::string((const char*)res.body.data(), res.body.size());
               LoadPluginFile(scriptSrc, "skymp5-client.js");
+            } else {
+              RE::ConsoleLog::GetSingleton()->Print(
+                "[Native] failed to load skymp5-client.js");
             }
-            else
-            {
-              RE::ConsoleLog::GetSingleton()->Print("[Native] failed to load skymp5-client.js");
-            }
-          }
-        );
+          });
       }
 
       HttpClientApi::GetHttpClient().ExecuteQueuedCallbacks();
 
       EventsApi::SendEvent("tick", {});
+#else
+      auto fileDirs = GetFileDirs();
+      if (monitors.empty()) {
+        for (auto fileDir : fileDirs) {
+          monitors.push_back(std::make_shared<DirectoryMonitor>(fileDir));
+        }
+      }
+      ++tickId;
+      std::vector<std::filesystem::path> pathsToLoad;
+      bool hotReload = false;
+      for (auto& monitor : monitors) {
+        if (monitor->Updated()) {
+          hotReload = true;
+          // Do not break here. monitor->Updated has to be called for all
+          // monitors. See method implementation
+        }
+        monitor->ThrowOnceIfHasError();
+      }
+      const bool startupLoad = tickId == 1;
+      const bool loadNeeded = startupLoad || hotReload;
+      if (loadNeeded) {
+        ClearState();
+        for (auto& fileDir : fileDirs) {
+          LoadFiles(GetPathsToLoad(fileDir));
+        }
+      }
+      HttpClientApi::GetHttpClient().ExecuteQueuedCallbacks();
+      EventsApi::SendEvent("tick", {});
+#endif // __LOAD_SKYMP_CLIENT_FROM_SERVER
     } catch (const std::exception& e) {
       PrintExceptionToGameConsole(e);
     }
@@ -171,6 +203,13 @@ private:
     JsValue parse = standardJson.GetProperty("parse");
 
     JsValue settings = parse.Call({ standardJson, strSetting });
+
+#ifdef __DISABLE_SHOW_ME
+    settings.SetProperty("show-me", JsValue(false));
+#endif // __DISABLE_SHOW_ME
+#ifdef __DISABLE_CONSOLE
+    settings.SetProperty("enable-console", JsValue(false));
+#endif // __DISABLE_CONSOLE
 
     return settings;
   }
