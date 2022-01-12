@@ -29,6 +29,7 @@
 #include "NetworkingMock.h"
 #include "PartOne.h"
 #include "ScriptStorage.h"
+#include "formulas/TES5DamageFormula.h"
 //#include <JsEngine.h>
 //#include <cassert>
 //#include <memory>
@@ -40,9 +41,6 @@
 #define SCAMPLIB_IMPLEMENTATION
 #include "ScampLib.h"
 
-
-SLString(*CreateString) (char* cstr);
-
 class ScampServerListener : public PartOne::Listener
 {
 public:
@@ -50,7 +48,6 @@ public:
         connect = [](Networking::UserId userId) {};
         disconnect = [](Networking::UserId userId) {};
         customPacket = [](Networking::UserId userId, char* content) {};
-        mpApiEvent = [](char* eventName, char* args, uint32_t formId) {};
     }
 
     void setConnectHandler(onConnectFn* handler) {
@@ -63,10 +60,6 @@ public:
 
     void setCustomPacketHandler(OnCustomPacketFn* handler) {
         customPacket = handler;
-    }
-
-    void setMpApiEventHandler(OnMpApiEventFn* handler) {
-        mpApiEvent = handler;
     }
 
     void OnConnect(Networking::UserId userId) override
@@ -89,17 +82,12 @@ public:
 
     bool OnMpApiEvent(const char* eventName, std::optional<simdjson::dom::element> args, std::optional<uint32_t> formId)
     {
-        using std::string;
-        std::string str = simdjson::minify(args.value());
-
-        mpApiEvent((char*)eventName, (char*)str.c_str(), formId.value());
         return true;
     }
 
     onConnectFn* connect;
     onDisconnectFn* disconnect;
     OnCustomPacketFn* customPacket; 
-    OnMpApiEventFn* mpApiEvent;
 };
 
 class ScampServer {
@@ -176,10 +164,6 @@ std::shared_ptr<ISaveStorage> CreateSaveStorage(std::shared_ptr<IDatabase> db, s
 }
 
 extern "C" {
-    SLExport void Init(UtilsApi* utilsApi) {
-        CreateString = utilsApi->CreateString;
-    }
-
     SLExport ScampServer* CreateServer(uint32_t port, uint32_t maxConnections)
     {
         ScampServer* ss = new ScampServer();
@@ -238,6 +222,7 @@ extern "C" {
         auto realServer = Networking::CreateServer(port, maxConnections);
         ss->server = Networking::CreateCombinedServer({ realServer,  ss->serverMock });
         ss->partOne->SetSendTarget(ss->server.get());
+        ss->partOne->SetDamageFormula(std::make_unique<TES5DamageFormula>());
         ss->partOne->worldState.AttachScriptStorage(scriptStorage);
         ss->partOne->AttachEspm(espm);
 
@@ -265,53 +250,46 @@ extern "C" {
         ss->listener->setCustomPacketHandler(handler);
     }
 
-    SLExport void SetMpApiEventHandler(ScampServer* ss, OnMpApiEventFn* handler) {
-        ss->listener->setMpApiEventHandler(handler);
+    SLExport void SetPacketHandler(ScampServer* ss, PacketHandlerFn* handler) {
+        ss->partOne->SetPacketHandler(handler);
     }
 
-    /*
-    ScampServer::AttachSaveStorage
-    ScampServer::Tick
-    ScampServer::CreateActor
-    ScampServer::SetUserActor
-    ScampServer::GetUserActor
-    ScampServer::GetActorPos
-    ScampServer::GetActorCellOrWorld
-    ScampServer::GetActorName
-    ScampServer::DestroyActor
-    ScampServer::SetRaceMenuOpen
-    ScampServer::SendCustomPacket
-    ScampServer::GetActorsByProfileId
-    ScampServer::SetEnabled
-    ScampServer::GetUserByActor
-
-    ScampServer::On
-    ScampServer::CreateBot
-    ScampServer::ExecuteJavaScriptOnChakra
-    ScampServer::SetSendUiMessageImplementation
-    ScampServer::Clear
-    */
-
-    SLExport void Tick(ScampServer* ss)
+    SLExport Option_void Tick(ScampServer* ss)
     {
-        ss->server->Tick(PartOne::HandlePacket, ss->partOne.get());
-        ss->partOne->Tick();
+        try {
+            ss->server->Tick(PartOne::HandlePacket, ss->partOne.get());
+            ss->partOne->Tick();
+            return Option_void { 0 };
+        }
+        catch (std::exception& e) {
+            auto msg = CreateString((char*)e.what());
+            return Option_void{ 2, _v_error(msg), { 0 } };
+        }
+        catch (...) {
+            auto msg = CreateString("Unknown error");
+            return Option_void{ 2, _v_error(msg), { 0 } };
+        }
     }
 
     SLExport uint32_t CreateActor(ScampServer* ss, uint32_t formId, Position vpos, float angleZ, uint32_t cellOrWorld, int32_t profileId)
     {
-         NiPoint3 pos = NiPoint3(vpos.x, vpos.y, vpos.z);
+        NiPoint3 pos = NiPoint3(vpos.x, vpos.y, vpos.z);
         return ss->partOne->CreateActor(formId, pos, angleZ, cellOrWorld, profileId);
     }
 
-    SLExport void SetUserActor(ScampServer* ss, Networking::UserId userId, uint32_t actorFormId)
+    SLExport void SetUserActor(ScampServer* ss, unsigned short userId, uint32_t actorFormId)
     {
         ss->partOne->SetUserActor(userId, actorFormId);
     }
 
-    SLExport uint32_t GetUserActor(ScampServer* ss, Networking::UserId userId)
+    SLExport uint32_t GetUserActor(ScampServer* ss, unsigned short userId)
     {
         return ss->partOne->GetUserActor(userId);
+    }
+
+    SLExport MpActor* ActorByUser(ScampServer* ss, unsigned short userId)
+    {
+        return ss->partOne->serverState.ActorByUser(userId);
     }
 
     SLExport char* GetActorName(ScampServer* ss, uint32_t actorFormId)
@@ -326,7 +304,7 @@ extern "C" {
         return pos;
     }
 
-    SLExport uint32_t GetActorCellOrWorld(ScampServer* ss, uint32_t actorFormId)
+    SLExport uint32_t GetActorWorldOrCell(ScampServer* ss, uint32_t actorFormId)
     {
         return ss->partOne->GetActorCellOrWorld(actorFormId);
     }
@@ -341,7 +319,7 @@ extern "C" {
         ss->partOne->SetRaceMenuOpen(actorFormId, open);
     }
 
-    SLExport uint32_t* GetActorsByProfileId(ScampServer* ss, ProfileId profileId, size_t * result_len)
+    SLExport uint32_t* GetActorsByProfileId(ScampServer* ss, int32_t profileId, size_t * result_len)
     {
         std::set<uint32_t> res = ss->partOne->GetActorsByProfileId(profileId);
 
@@ -381,7 +359,7 @@ extern "C" {
         ss->partOne->AttachSaveStorage(CreateSaveStorage(CreateDatabase(ss->serverSettings, ss->logger), ss->logger));
     }
 
-    SLExport void SendCustomPacket(ScampServer* ss, Networking::UserId userId, char* data)
+    SLExport void SendCustomPacket(ScampServer* ss, unsigned short userId, char* data)
     {
         ss->partOne->SendCustomPacket(userId, data);
     }
@@ -538,5 +516,118 @@ extern "C" {
         }
 
         return new VarValue(res);
+    }
+
+    //MpObjectReference
+
+    SLExport Option_server__MpObjectReference GetMpObjectReference(ScampServer* ss, uint32_t formId) {
+        Option_server__MpObjectReference opt;
+        try
+        {
+            MpObjectReference* ref = &ss->partOne->worldState.GetFormAt<MpObjectReference>(formId);
+            opt_ok(ref, (Option*)(&opt), sizeof(MpObjectReference*));
+            return opt;
+        }
+        catch (const std::exception& e)
+        {
+            auto msg = CreateString((char*)e.what());
+            return Option_server__MpObjectReference{ 2, _v_error(msg), { 0 } };
+        }
+    }
+
+    SLExport Option_server__MpActor GetMpActor(ScampServer* ss, uint32_t formId) {
+        Option_server__MpActor opt;
+        try
+        {
+            MpActor* ac = &ss->partOne->worldState.GetFormAt<MpActor>(formId);
+            opt_ok(ac, (Option*)(&opt), sizeof(MpActor*));
+            return opt;
+        }
+        catch (const std::exception& e)
+        {
+            auto msg = CreateString((char*)e.what());
+            return Option_server__MpActor{ 2, _v_error(msg), { 0 } };
+        }
+    }
+
+    SLExport Option_server__MpActor CastMpObjectReferenceToMpActor(MpObjectReference* refr) {
+        if (auto actor = dynamic_cast<MpActor*>(refr)) {
+            Option_server__MpActor opt;
+            opt_ok(actor, (Option*)(&opt), sizeof(MpActor*));
+            return opt;
+        }
+        else {
+            return Option_server__MpActor{ 2, _v_error(_SLIT("CPP ERROR in CastMpObjectReferenceToMpActor()")), { 0 } };
+        }
+    }
+
+    SLExport FormDesc* GetCellOrWorld(MpObjectReference* ref) {
+        return (FormDesc*)&ref->GetCellOrWorld();
+    }
+
+    SLExport void SetCellOrWorld(MpObjectReference* ref, FormDesc* desc) {
+        ref->SetCellOrWorld(*desc);
+    }
+
+    SLExport uint32_t GetBaseId(MpObjectReference* ref) {
+        return ref->GetBaseId();
+    }
+
+    SLExport Position GetAngle(MpObjectReference* ref) {
+        auto angle = ref->GetAngle();
+        return Position{ angle.x, angle.y, angle.z };
+    }
+
+    SLExport void SetAngle(MpObjectReference* ref, Position angle) {
+        ref->SetAngle(NiPoint3(angle.x, angle.y, angle.z));
+    }
+
+    SLExport Position GetPosition(MpObjectReference* ref) {
+        auto pos = ref->GetPos();
+        return Position{ pos.x, pos.y, pos.z };
+    }
+
+    SLExport void SetPosition(MpObjectReference* ref, Position pos) {
+        ref->SetPos(NiPoint3(pos.x, pos.y, pos.z));
+    }
+
+    SLExport bool IsOpen(MpObjectReference* ref) {
+        return ref->IsOpen();
+    }
+
+    SLExport void SetOpen(MpObjectReference* ref, bool state) {
+        ref->SetOpen(state);
+    }
+
+    SLExport bool IsHarvested(MpObjectReference* ref) {
+        return ref->IsHarvested();
+    }
+
+    SLExport void SetHarvested(MpObjectReference* ref, bool state) {
+        ref->SetHarvested(state);
+    }
+
+    SLExport bool IsDisabled(MpObjectReference* ref) {
+        return ref->IsDisabled();
+    }
+
+    SLExport void Disable(MpObjectReference* ref) {
+        ref->Disable();
+    }
+
+    SLExport void Enable(MpObjectReference* ref) {
+        ref->Enable();
+    }
+
+    SLExport bool IsActivationBlocked(MpObjectReference* ref) {
+        return ref->IsActivationBlocked();
+    }
+
+    SLExport void SetActivationBlocked(MpObjectReference* ref, bool state) {
+        ref->SetActivationBlocked(state);
+    }
+
+    SLExport void RemoveAllItems(MpObjectReference* ref, MpObjectReference* target) {
+        ref->RemoveAllItems(target);
     }
 };

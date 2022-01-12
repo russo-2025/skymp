@@ -16,6 +16,8 @@
 #include <spdlog/logger.h>
 #include <unordered_map>
 
+typedef void PacketHandlerFn(Networking::UserId userId, Networking::PacketData data, size_t length);
+
 using ProfileId = int32_t;
 
 class IActionListener;
@@ -86,6 +88,8 @@ public:
   void NotifyGamemodeApiStateChanged(
     const GamemodeApi::State& newState) noexcept;
 
+  void SetPacketHandler(PacketHandlerFn* handler);
+
 private:
   void Init();
 
@@ -104,4 +108,5 @@ private:
 
   struct Impl;
   std::shared_ptr<Impl> pImpl;
+  PacketHandlerFn* packetHandler;
 };

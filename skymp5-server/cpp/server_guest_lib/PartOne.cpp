@@ -608,10 +608,16 @@ void PartOne::HandleMessagePacket(Networking::UserId userId,
 
   pImpl->packetParser->TransformPacketIntoAction(userId, data, length,
                                                  *pImpl->actionListener);
+
+  packetHandler(userId, data, length);
 }
 
 void PartOne::InitActionListener()
 {
   if (!pImpl->actionListener)
     pImpl->actionListener.reset(new ActionListener(*this));
+}
+
+void PartOne::SetPacketHandler(PacketHandlerFn* handler) {
+    packetHandler = handler;
 }
