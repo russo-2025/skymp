@@ -33,6 +33,8 @@
 #include "InventoryApi.h"
 #include "LoadGameApi.h"
 #include "MpClientPluginApi.h"
+#include "TextApi.h"
+#include "Win32Api.h"
 #include "RH.h"
 
 CallNativeApi::NativeCallRequirements g_nativeCallRequirements;
@@ -104,14 +106,35 @@ public:
   void Tick() override
   {
     try {
+      auto fileDirs = GetFileDirs();
+
+      if (monitors.empty()) {
+        for (auto fileDir : fileDirs) {
+          monitors.push_back(std::make_shared<DirectoryMonitor>(fileDir));
+        }
+      }
+
       ++tickId;
 
-      const bool startupLoad = tickId == 1;
+      std::vector<std::filesystem::path> pathsToLoad;
 
-      if (startupLoad) {
+      bool hotReload = false;
+
+      for (auto& monitor : monitors) {
+        if (monitor->Updated()) {
+          hotReload = true;
+          // Do not break here. monitor->Updated has to be called for all
+          // monitors. See method implementation
+        }
+        monitor->ThrowOnceIfHasError();
+      }
+
+      const bool startupLoad = tickId == 1;
+      const bool loadNeeded = startupLoad || hotReload;
+      if (loadNeeded) {
         ClearState();
 
-        auto& engine = GetJsEngine(); //fuck
+         auto& engine = GetJsEngine(); //fuck
 
         LoadSettingsFile("Data/Platform/Plugins/skymp5-client-settings.txt");
 
@@ -121,25 +144,32 @@ public:
 
         std::string ip = settings.GetProperty("server-ip").ToString();
         int uiport = (int)settings.GetProperty("server-port") + 1;
-        std::string host = ip + ":" + std::to_string(uiport);
-        std::string path = "/dist_front/skymp5-client.js";
-
-        RE::ConsoleLog::GetSingleton()->Print("[Native] requesting skymp5-client.js from server");
-
-        HttpClientApi::GetHttpClient().Get(host.c_str(), path.c_str(), headers,
-          [=](HttpClient::HttpResult res) -> void {
-            if (res.status)
-            {
-              RE::ConsoleLog::GetSingleton()->Print("[Native] skymp5-client.js loaded");
-              std::string scriptSrc = std::string((const char*)res.body.data(), res.body.size());
-              LoadPluginFile(scriptSrc, "skymp5-client.js");
-            }
-            else
-            {
-              RE::ConsoleLog::GetSingleton()->Print("[Native] failed to load skymp5-client.js");
-            }
+        bool offlineMode = (bool)settings.GetProperty("offlineMode");
+        if (offlineMode) {
+          for (auto& fileDir : fileDirs) {
+            LoadFiles(GetPathsToLoad(fileDir));
           }
-        );
+        } else {
+          std::string host = ip + ":" + std::to_string(uiport);
+          std::string path = "/dist_front/skymp5-client.js";
+
+          RE::ConsoleLog::GetSingleton()->Print("[Native] requesting skymp5-client.js from server");
+          
+          HttpClientApi::GetHttpClient().Get(host.c_str(), path.c_str(), headers,
+            [=](HttpClient::HttpResult res) -> void {
+              if (res.status)
+              {
+                RE::ConsoleLog::GetSingleton()->Print("[Native] skymp5-client.js loaded");
+                std::string scriptSrc = std::string((const char*)res.body.data(), res.body.size());
+                LoadPluginFile(scriptSrc, "skymp5-client.js");
+              }
+              else
+              {
+                RE::ConsoleLog::GetSingleton()->Print("[Native] failed to load skymp5-client.js");
+              }
+            }
+          );
+        }
       }
 
       HttpClientApi::GetHttpClient().ExecuteQueuedCallbacks();
@@ -199,6 +229,9 @@ private:
       if (EndsWith(path.wstring(), L"-logs.txt")) {
         continue;
       }
+      if (EndsWith(path.wstring(), L"-no-load.js")) {
+        continue;
+      }
       LoadPluginFile(ReadFile(path), path.filename().string());
     }
   }
@@ -245,6 +278,8 @@ private:
                            DevApi::Register(e, &engine, {}, GetFileDirs());
                            EventsApi::Register(e);
                            BrowserApi::Register(e, browserApiState);
+                           Win32Api::Register(e);
+                           TextApi::Register(e);
                            InventoryApi::Register(e);
                            CallNativeApi::Register(
                              e, [this] { return nativeCallRequirements; });

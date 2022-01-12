@@ -1,3 +1,5 @@
+#include "BrowserApi.h"
+#include "CallNativeApi.h"
 #include "CameraApi.h"
 #include "ConsoleApi.h"
 #include "DevApi.h"
@@ -7,6 +9,7 @@
 #include "EventsApi.h"
 #include "ExceptionPrinter.h"
 #include "FlowManager.h"
+#include "FridaHooksUtils.h"
 #include "HttpClient.h"
 #include "HttpClientApi.h"
 #include "InputConverter.h"
@@ -21,11 +24,16 @@
 #include "TPOverlayService.h"
 #include "TPRenderSystemD3D11.h"
 #include "TaskQueue.h"
+#include "TextsCollection.h"
 #include "ThreadPoolWrapper.h"
 #include "TickTask.h"
 #include <RE/ConsoleLog.h>
+#include <SKSE/API.h>
+#include <SKSE/Interfaces.h>
+#include <SKSE/Stubs.h>
 #include <Windows.h>
 #include <atomic>
+#include <functional>
 #include <hooks/D3D11Hook.hpp>
 #include <hooks/DInputHook.hpp>
 #include <hooks/IInputListener.h>
@@ -40,27 +48,28 @@
 #include <skse64/GameMenus.h>
 #include <skse64/GameReferences.h>
 #include <skse64/NiRenderer.h>
+#include <skse64/PluginAPI.h>
 #include <skse64/gamethreads.h>
 #include <sstream>
 #include <string>
 #include <thread>
 #include <ui/MyChromiumApp.h>
 #include <ui/ProcessMessageListener.h>
-
-#include "BrowserApi.h"
-#include "CallNativeApi.h"
-#include <SKSE/API.h>
-#include <SKSE/Interfaces.h>
-#include <SKSE/Stubs.h>
-#include <skse64/PluginAPI.h>
-
-#include "RH.h"
-#include "SkyrimPlatform.h"
+#include <ui/TextToDraw.h>
 
 #define PLUGIN_NAME "SkyrimPlatform"
 #define PLUGIN_VERSION 0
 
 extern CallNativeApi::NativeCallRequirements g_nativeCallRequirements;
+
+void GetTextsToDraw(TextToDrawCallback callback)
+{
+  auto text = &TextsCollection::GetSingleton();
+
+  for (const auto& a : TextsCollection::GetSingleton().GetCreatedTexts()) {
+    callback(a.second);
+  }
+}
 
 void SetupFridaHooks();
 
@@ -97,16 +106,6 @@ void OnUpdate(RE::BSScript::IVirtualMachine* vm, RE::VMStackID stackId)
   g_nativeCallRequirements.gameThrQ->Update();
   g_nativeCallRequirements.stackId = std::numeric_limits<RE::VMStackID>::max();
   g_nativeCallRequirements.vm = nullptr;
-}
-
-void MessageHandler(SKSEMessagingInterface::Message* a_msg)
-{
-  switch (a_msg->type) {
-    case SKSE::MessagingInterface::kDataLoaded:
-      RH::Init();
-      OnTick();
-      break;
-  }
 }
 
 extern "C" {
@@ -148,15 +147,6 @@ __declspec(dllexport) bool SKSEPlugin_Query_Impl(
 
 __declspec(dllexport) bool SKSEPlugin_Load_Impl(const SKSEInterface* skse)
 {
-  auto messagingInterface =
-    (SKSEMessagingInterface*)skse->QueryInterface(kInterface_Messaging);
-  if (!messagingInterface) {
-    _FATALERROR("couldn't get messaging interface");
-    return false;
-  }
-  messagingInterface->RegisterListener(skse->GetPluginHandle(), "SKSE",
-                                       MessageHandler);
-
   auto taskInterface = reinterpret_cast<SKSETaskInterface*>(
     skse->QueryInterface(kInterface_Task));
   if (!taskInterface) {
@@ -170,6 +160,8 @@ __declspec(dllexport) bool SKSEPlugin_Load_Impl(const SKSEInterface* skse)
     _FATALERROR("QueryInterface failed for PapyrusInterface");
     return false;
   }
+
+  SKSE::Init(reinterpret_cast<const SKSE::LoadInterface*>(skse));
 
   SetupFridaHooks();
 
@@ -244,8 +236,14 @@ public:
 
   MyInputListener()
   {
-    pCursorX = (float*)(REL::Module::BaseAddr() + 0x2F6C104);
-    pCursorY = (float*)(REL::Module::BaseAddr() + 0x2F6C108);
+    bool kRunningAE = false;
+    if (kRunningAE) {
+      pCursorX = FridaHooksUtils::GetCursorX();
+      pCursorY = FridaHooksUtils::GetCursorY();
+    } else {
+      pCursorX = (float*)(REL::Module::BaseAddr() + 0x2F6C104);
+      pCursorY = (float*)(REL::Module::BaseAddr() + 0x2F6C108);
+    }
     vkCodeDownDur.fill(0);
   }
 
@@ -530,7 +528,10 @@ public:
 
     auto onProcessMessage = std::make_shared<ProcessMessageListenerImpl>();
 
-    overlayService = std::make_shared<OverlayService>(onProcessMessage);
+    ObtainTextsToDrawFunction obtainTextsToDraw = GetTextsToDraw;
+
+    overlayService =
+      std::make_shared<OverlayService>(onProcessMessage, obtainTextsToDraw);
     myInputListener->Init(overlayService, inputConverter);
     SkyrimPlatform::GetSingleton().SetOverlayService(overlayService);
 
