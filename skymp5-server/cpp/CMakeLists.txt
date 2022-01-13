@@ -96,7 +96,6 @@ list(APPEND sources "${CMAKE_SOURCE_DIR}/.clang-format")
 endif()
 add_library(scamp_lib SHARED ${sources})
 add_compile_options(/EHs)
-add_compile_options(/EHa)
 
 target_link_libraries(scamp_lib PRIVATE mp_common server_guest_lib)
 list(APPEND VCPKG_DEPENDENT scamp_lib)
