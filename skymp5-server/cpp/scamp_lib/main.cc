@@ -164,6 +164,9 @@ std::shared_ptr<ISaveStorage> CreateSaveStorage(std::shared_ptr<IDatabase> db, s
 }
 
 extern "C" {
+    //================================================================
+    //ScampServer
+    //================================================================
     SLExport ScampServer* CreateServer(uint32_t port, uint32_t maxConnections)
     {
         ScampServer* ss = new ScampServer();
@@ -364,6 +367,12 @@ extern "C" {
         ss->partOne->SendCustomPacket(userId, data);
     }
 
+    SLExport uint32_t FindHoster(ScampServer* ss, uint32_t formId) {
+        auto it = ss->partOne->worldState.hosters.find(formId);
+        auto hosterId = it == ss->partOne->worldState.hosters.end() ? 0 : it->second;
+        return hosterId;
+    }
+
     /*
     Napi::Value CreateBot(const Napi::CallbackInfo& info)
     {
@@ -412,15 +421,9 @@ extern "C" {
         }
         return info.Env().Undefined();
     }
-
-    //mp api
-
-    /*
-    getServerSettings
-    readDataDirectory
-    readDataFile
     */
 
+    /*
     SLExport void Clear(ScampServer* ss) {
         ss->gamemodeApiState = GamemodeApi::State();
         ss->partOne->NotifyGamemodeApiStateChanged(ss->gamemodeApiState);
@@ -435,28 +438,12 @@ extern "C" {
 
         ss->gamemodeApiState.createdEventSources[_eventName] = { std::string(functionBody) };
         ss->partOne->NotifyGamemodeApiStateChanged(ss->gamemodeApiState);
-    }
-
-    /*
-    SLExport void GetOnlinePlayers(ScampServer* ss, uint32_t formId) {
-    }
-
-    SLExport void GetOnlinePlayers(ScampServer* ss, uint32_t formId) {
     }*/
 
     /*
-    makeProperty
-    get
-    set
-    place
-    lookupEspmRecordById
-    getEspmLoadOrder
-    getDescFromId
-    getIdFromDesc
-    sendUiMessage
-    */
-
-    //vm api
+    //================================================================
+    //VM
+    //================================================================
 
     typedef VarValue* VmValue;
     typedef VarValue** VmFunctionArgs;
@@ -516,9 +503,7 @@ extern "C" {
         }
 
         return new VarValue(res);
-    }
-
-    //MpObjectReference
+    }*/
 
     SLExport Option_server__MpObjectReference GetMpObjectReference(ScampServer* ss, uint32_t formId) {
         Option_server__MpObjectReference opt;
@@ -550,27 +535,15 @@ extern "C" {
         }
     }
 
-    SLExport Option_server__MpActor CastMpObjectReferenceToMpActor(MpObjectReference* refr) {
-        if (auto actor = dynamic_cast<MpActor*>(refr)) {
-            Option_server__MpActor opt;
-            opt_ok(actor, (Option*)(&opt), sizeof(MpActor*));
-            return opt;
-        }
-        else {
-            return Option_server__MpActor{ 2, _v_error(_SLIT("CPP ERROR in CastMpObjectReferenceToMpActor()")), { 0 } };
-        }
-    }
-
+    //================================================================
+    //MpObjectReference
+    //================================================================
     SLExport FormDesc* GetCellOrWorld(MpObjectReference* ref) {
         return (FormDesc*)&ref->GetCellOrWorld();
     }
 
     SLExport void SetCellOrWorld(MpObjectReference* ref, FormDesc* desc) {
         ref->SetCellOrWorld(*desc);
-    }
-
-    SLExport uint32_t GetBaseId(MpObjectReference* ref) {
-        return ref->GetBaseId();
     }
 
     SLExport Position GetAngle(MpObjectReference* ref) {
@@ -591,43 +564,7 @@ extern "C" {
         ref->SetPos(NiPoint3(pos.x, pos.y, pos.z));
     }
 
-    SLExport bool IsOpen(MpObjectReference* ref) {
-        return ref->IsOpen();
-    }
-
-    SLExport void SetOpen(MpObjectReference* ref, bool state) {
-        ref->SetOpen(state);
-    }
-
-    SLExport bool IsHarvested(MpObjectReference* ref) {
-        return ref->IsHarvested();
-    }
-
-    SLExport void SetHarvested(MpObjectReference* ref, bool state) {
-        ref->SetHarvested(state);
-    }
-
-    SLExport bool IsDisabled(MpObjectReference* ref) {
-        return ref->IsDisabled();
-    }
-
-    SLExport void Disable(MpObjectReference* ref) {
-        ref->Disable();
-    }
-
-    SLExport void Enable(MpObjectReference* ref) {
-        ref->Enable();
-    }
-
-    SLExport bool IsActivationBlocked(MpObjectReference* ref) {
-        return ref->IsActivationBlocked();
-    }
-
-    SLExport void SetActivationBlocked(MpObjectReference* ref, bool state) {
-        ref->SetActivationBlocked(state);
-    }
-
-    SLExport void RemoveAllItems(MpObjectReference* ref, MpObjectReference* target) {
-        ref->RemoveAllItems(target);
-    }
+    //================================================================
+    //MpActor
+    //================================================================
 };
