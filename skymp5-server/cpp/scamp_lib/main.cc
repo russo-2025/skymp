@@ -1,29 +1,7 @@
-
-/*
-  std::shared_ptr<PartOne> partOne;
-  std::shared_ptr<Networking::IServer> server;
-  std::shared_ptr<Networking::MockServer> serverMock;
-  std::shared_ptr<ScampServerListener> listener;
-  Napi::Env tickEnv;
-  Napi::ObjectReference emitter;
-  Napi::FunctionReference emit;
-  std::shared_ptr<spdlog::logger> logger;
-  nlohmann::json serverSettings;
-  std::shared_ptr<JsEngine> chakraEngine;
-  TaskQueue chakraTaskQueue;
-  std::optional<Napi::FunctionReference> sendUiMessageImplementation;
-  GamemodeApi::State gamemodeApiState;
-*/
-
-
 #include "AsyncSaveStorage.h"
-//#include "EspmGameObject.h"
 #include "FileDatabase.h"
-//#include "FormCallbacks.h"
-//#include "GamemodeApi.h"
 #include "MigrationDatabase.h"
 #include "MongoDatabase.h"
-//#include "MpFormGameObject.h"
 #include "Networking.h"
 #include "NetworkingCombined.h"
 #include "NetworkingMock.h"
@@ -31,8 +9,6 @@
 #include "ScriptStorage.h"
 #include "formulas/TES5DamageFormula.h"
 //#include <JsEngine.h>
-//#include <cassert>
-//#include <memory>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
 #include <string>
@@ -103,25 +79,6 @@ public:
     GamemodeApi::State gamemodeApiState;
 };
 
-/*
-namespace Scamp {
-    typedef void onConnectFn(Networking::UserId userId);
-    typedef void onDisconnectFn(Networking::UserId userId);
-    typedef void OnCustomPacketFn(Networking::UserId userId, char* content);
-
-    onConnectFn* connect = [](Networking::UserId userId) {};
-    onDisconnectFn* disconnect = [](Networking::UserId userId) {};
-    OnCustomPacketFn* customPacket = [](Networking::UserId userId, char* content) {};
-}
-
-std::shared_ptr<PartOne> partOne;
-std::shared_ptr<ScampServerListener> listener;
-std::shared_ptr<Networking::MockServer> serverMock;
-std::shared_ptr<Networking::IServer> server;
-std::shared_ptr<spdlog::logger> logger;
-nlohmann::json serverSettings;
-*/
-
 std::shared_ptr<IDatabase> CreateDatabase(nlohmann::json settings, std::shared_ptr<spdlog::logger> logger)
 {
     auto databaseDriver = settings.count("databaseDriver")
@@ -178,9 +135,9 @@ extern "C" {
         ss->serverMock = std::make_shared<Networking::MockServer>();
 
         std::string dataDir = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Skyrim Special Edition\\Data";
-    #ifndef WIN32
+#ifndef WIN32
         dataDir = "/skyrim_data_dir";
-    #endif
+#endif
 
         ss->logger = spdlog::stdout_color_mt("console");
         ss->partOne->AttachLogger(ss->logger);
@@ -198,7 +155,7 @@ extern "C" {
         ss->partOne->worldState.isPapyrusHotReloadEnabled =
             ss->serverSettings.count("isPapyrusHotReloadEnabled") != 0 &&
             ss->serverSettings.at("isPapyrusHotReloadEnabled").get<bool>();
-        
+
         auto hotReloadStatus = ss->partOne->worldState.isPapyrusHotReloadEnabled ? "enabled" : "disabled";
         ss->logger->info("Hot reload is {} for Papyrus", hotReloadStatus);
 
@@ -510,7 +467,10 @@ extern "C" {
         try
         {
             MpObjectReference* ref = &ss->partOne->worldState.GetFormAt<MpObjectReference>(formId);
-            opt_ok(ref, (Option*)(&opt), sizeof(MpObjectReference*));
+
+            MpObjectReference* val[] = { ref };
+            opt_ok(&val, (Option*)(&opt), sizeof(MpObjectReference*));
+
             return opt;
         }
         catch (const std::exception& e)
@@ -525,7 +485,8 @@ extern "C" {
         try
         {
             MpActor* ac = &ss->partOne->worldState.GetFormAt<MpActor>(formId);
-            opt_ok(ac, (Option*)(&opt), sizeof(MpActor*));
+            MpActor* val[] = { ac };
+            opt_ok(&val, (Option*)(&opt), sizeof(MpActor*));
             return opt;
         }
         catch (const std::exception& e)
@@ -556,8 +517,18 @@ extern "C" {
     }
 
     SLExport Position GetPosition(MpObjectReference* ref) {
-        auto pos = ref->GetPos();
-        return Position{ pos.x, pos.y, pos.z };
+        try
+        {
+            auto pos = ref->GetPos();
+            return Position{ pos.x, pos.y, pos.z };
+        }
+        catch (const std::exception& e)
+        {
+            throw e.what();
+        }
+        catch (...) {
+            throw "unk err";
+        }
     }
 
     SLExport void SetPosition(MpObjectReference* ref, Position pos) {
