@@ -25,23 +25,23 @@ struct Option_server__MpObjectReference {
     byte data[sizeof(MpObjectReference*)];
 };
 
-#define GenWrapper(returnType, name, thisType) \
-    SLExport returnType name##(##thisType thisArg) { \
+#define GenWrapper(returnType, prefix, name, thisType) \
+    SLExport returnType prefix##name##(##thisType thisArg) { \
         return thisArg->##name##(); \
     };
 
-#define GenWrapper1(returnType, name, thisType, arg1Type) \
-    SLExport returnType name##(##thisType thisArg, arg1Type arg1) { \
+#define GenWrapper1(returnType, prefix, name, thisType, arg1Type) \
+    SLExport returnType prefix##name##(##thisType thisArg, arg1Type arg1) { \
         return thisArg->##name##(arg1); \
     };
 
-#define GenWrapperVoid(name, thisType) \
-    SLExport void name##(##thisType thisArg) { \
+#define GenWrapperVoid(prefix, name, thisType) \
+    SLExport void prefix##name##(##thisType thisArg) { \
         thisArg->##name##(); \
     };
 
-#define GenWrapperVoid1(name, thisType, arg1Type) \
-    SLExport void name##(##thisType thisArg, arg1Type arg1) { \
+#define GenWrapperVoid1(prefix, name, thisType, arg1Type) \
+    SLExport void prefix##name##(##thisType thisArg, arg1Type arg1) { \
         thisArg->##name##(arg1); \
     };
 
@@ -58,32 +58,32 @@ typedef void* MpObjectReference;
 typedef void* MpActor;
 typedef void* FormDesc;
 
-#define GenWrapper(returnType, name, thisType) \
-    SLExport returnType name##(##thisType thisArg);
+#define GenWrapper(returnType, prefix, name, thisType) \
+    SLExport returnType prefix##name##(##thisType thisArg);
 
-#define GenWrapper1(returnType, name, thisType, arg1Type) \
-    SLExport returnType name##(##thisType thisArg, arg1Type arg1);
+#define GenWrapper1(returnType, prefix, name, thisType, arg1Type) \
+    SLExport returnType prefix##name##(##thisType thisArg, arg1Type arg1);
 
-#define GenWrapperVoid(name, thisType) \
-    SLExport void name##(##thisType thisArg);
+#define GenWrapperVoid(prefix, name, thisType) \
+    SLExport void prefix##name##(##thisType thisArg);
 
-#define GenWrapperVoid1(name, thisType, arg1Type) \
-    SLExport void name##(##thisType thisArg, arg1Type arg1);
+#define GenWrapperVoid1(prefix, name, thisType, arg1Type) \
+    SLExport void prefix##name##(##thisType thisArg, arg1Type arg1);
 
 #define GenCastObj(fromType, ToType) \
     SLExport ToType* Cast##fromType##To##ToType(fromType* obj);
 
 #endif
 
-#define GenObjectReferenceWrapper(returnType, name) GenWrapper(returnType, name, MpObjectReference*)
-#define GenObjectReferenceWrapper1(returnType, name, arg1Type) GenWrapper1(returnType, name, MpObjectReference*, arg1Type)
-#define GenObjectReferenceWrapperVoid(name) GenWrapperVoid(name, MpObjectReference*)
-#define GenObjectReferenceWrapperVoid1(name, arg1Type) GenWrapperVoid1(name, MpObjectReference*, arg1Type)
+#define GenObjectReferenceWrapper(returnType, name) GenWrapper(returnType, MpObjectReference_, name, MpObjectReference*)
+#define GenObjectReferenceWrapper1(returnType, name, arg1Type) GenWrapper1(returnType, MpObjectReference_, name, MpObjectReference*, arg1Type)
+#define GenObjectReferenceWrapperVoid(name) GenWrapperVoid(MpObjectReference_, name, MpObjectReference*)
+#define GenObjectReferenceWrapperVoid1(name, arg1Type) GenWrapperVoid1(MpObjectReference_, name, MpObjectReference*, arg1Type)
 
-#define GenActorWrapper(returnType, name) GenWrapper(returnType, name, MpActor*)
-#define GenActorWrapper1(returnType, name, arg1Type) GenWrapper1(returnType, name, MpActor*, arg1Type)
-#define GenActorWrapperVoid(name) GenWrapperVoid(name, MpActor*)
-#define GenActorWrapperVoid1(name, arg1Type) GenWrapperVoid1(name, MpActor*, arg1Type)
+#define GenActorWrapper(returnType, name) GenWrapper(returnType, MpActor_, name, MpActor*)
+#define GenActorWrapper1(returnType, name, arg1Type) GenWrapper1(returnType, MpActor_, name, MpActor*, arg1Type)
+#define GenActorWrapperVoid(name) GenWrapperVoid(MpActor_, name, MpActor*)
+#define GenActorWrapperVoid1(name, arg1Type) GenWrapperVoid1(MpActor_, name, MpActor*, arg1Type)
 
 struct Position {
     float x;
@@ -153,12 +153,12 @@ GenObjectReferenceWrapperVoid(Enable)
 GenObjectReferenceWrapper(bool, IsActivationBlocked)
 GenObjectReferenceWrapperVoid1(SetActivationBlocked, bool)
 
-SLExport FormDesc* GetCellOrWorld(MpObjectReference* ref);
-SLExport void SetCellOrWorld(MpObjectReference* ref, FormDesc* desc);
-SLExport struct Position GetAngle(MpObjectReference* ref);
-SLExport void SetAngle(MpObjectReference* ref, struct Position angle);
-SLExport struct Position GetPosition(MpObjectReference* ref);
-SLExport void SetPosition(MpObjectReference* ref, struct Position pos);
+SLExport FormDesc* MpObjectReference_GetCellOrWorld(MpObjectReference* ref);
+SLExport void MpObjectReference_SetCellOrWorld(MpObjectReference* ref, FormDesc* desc);
+SLExport struct Position MpObjectReference_GetAngle(MpObjectReference* ref);
+SLExport void MpObjectReference_SetAngle(MpObjectReference* ref, struct Position angle);
+SLExport struct Position MpObjectReference_GetPosition(MpObjectReference* ref);
+SLExport void MpObjectReference_SetPosition(MpObjectReference* ref, struct Position pos);
 
 //================================================================
 //MpActor

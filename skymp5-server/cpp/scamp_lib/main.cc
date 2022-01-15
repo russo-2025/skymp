@@ -499,24 +499,24 @@ extern "C" {
     //================================================================
     //MpObjectReference
     //================================================================
-    SLExport FormDesc* GetCellOrWorld(MpObjectReference* ref) {
+    SLExport FormDesc* MpObjectReference_GetCellOrWorld(MpObjectReference* ref) {
         return (FormDesc*)&ref->GetCellOrWorld();
     }
 
-    SLExport void SetCellOrWorld(MpObjectReference* ref, FormDesc* desc) {
+    SLExport void MpObjectReference_SetCellOrWorld(MpObjectReference* ref, FormDesc* desc) {
         ref->SetCellOrWorld(*desc);
     }
 
-    SLExport Position GetAngle(MpObjectReference* ref) {
+    SLExport Position MpObjectReference_GetAngle(MpObjectReference* ref) {
         auto angle = ref->GetAngle();
         return Position{ angle.x, angle.y, angle.z };
     }
 
-    SLExport void SetAngle(MpObjectReference* ref, Position angle) {
+    SLExport void MpObjectReference_SetAngle(MpObjectReference* ref, Position angle) {
         ref->SetAngle(NiPoint3(angle.x, angle.y, angle.z));
     }
 
-    SLExport Position GetPosition(MpObjectReference* ref) {
+    SLExport Position MpObjectReference_GetPosition(MpObjectReference* ref) {
         try
         {
             auto pos = ref->GetPos();
@@ -531,7 +531,7 @@ extern "C" {
         }
     }
 
-    SLExport void SetPosition(MpObjectReference* ref, Position pos) {
+    SLExport void MpObjectReference_SetPosition(MpObjectReference* ref, Position pos) {
         ref->SetPos(NiPoint3(pos.x, pos.y, pos.z));
     }
 
