@@ -1,10 +1,15 @@
 #pragma once
 #include <stdint.h>
-
 #if defined(SCAMPLIB_IMPLEMENTATION)
 #include "v.h"
 #include "PartOne.h"
+#endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#if defined(SCAMPLIB_IMPLEMENTATION)
 #define SLExport __declspec(dllexport)
 
 class ScampServer;
@@ -96,10 +101,6 @@ typedef void onDisconnectFn(unsigned short userId);
 typedef void OnCustomPacketFn(unsigned short userId, char* content);
 typedef void PacketHandlerFn(unsigned short userId, const unsigned char* data, size_t length);
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 SLExport ScampServer* CreateServer(uint32_t port, uint32_t maxConnections);
 
 //================================================================
@@ -139,8 +140,14 @@ GenCastObj(MpActor, MpForm)
 GenCastObj(MpActor, MpObjectReference)
 
 //================================================================
+//MpForm
+//================================================================
+
+//================================================================
 //MpObjectReference
 //================================================================
+GenObjectReferenceWrapper(uint32_t, GetIdx)
+GenObjectReferenceWrapper(uint32_t, GetFormId)
 GenObjectReferenceWrapper(uint32_t, GetBaseId)
 GenObjectReferenceWrapperVoid1(RemoveAllItems, MpObjectReference*)
 GenObjectReferenceWrapper(bool, IsOpen)
@@ -163,7 +170,11 @@ SLExport void MpObjectReference_SetPosition(MpObjectReference* ref, struct Posit
 //================================================================
 //MpActor
 //================================================================
+GenActorWrapper(uint32_t, GetIdx)
 GenActorWrapper(uint32_t, GetFormId)
+
+SLExport void MpActor_SendToUser(MpActor* ac, string msg);
+SLExport void MpActor_SendToNeighbors(MpActor* ac, string msg);
 
 #ifdef __cplusplus
 }

@@ -538,4 +538,16 @@ extern "C" {
     //================================================================
     //MpActor
     //================================================================
+
+    SLExport void MpActor_SendToUser(MpActor* ac, string msg) {
+        ac->SendToUser(msg.str, msg.len, true);
+    }
+
+    SLExport void MpActor_SendToNeighbors(MpActor* ac, string msg) {
+        for (auto listener : ac->GetListeners()) {
+            auto listenerAsActor = dynamic_cast<MpActor*>(listener);
+            if (listenerAsActor)
+                listenerAsActor->SendToUser(msg.str, msg.len, true);
+        }
+    }
 };
