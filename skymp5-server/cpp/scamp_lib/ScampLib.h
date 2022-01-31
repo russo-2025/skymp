@@ -18,16 +18,22 @@ class MpObjectReference;
 class MpActor;
 class FormDesc;
 
-struct Option_server__MpActor {
+struct Option_server__MpForm {
     byte state;
     IError err;
-    byte data[sizeof(MpActor*)];
+    byte data[sizeof(MpForm*)];
 };
 
 struct Option_server__MpObjectReference {
     byte state;
     IError err;
     byte data[sizeof(MpObjectReference*)];
+};
+
+struct Option_server__MpActor {
+    byte state;
+    IError err;
+    byte data[sizeof(MpActor*)];
 };
 
 #define GenWrapper(returnType, prefix, name, thisType) \
@@ -80,6 +86,11 @@ typedef void* FormDesc;
 
 #endif
 
+#define GenFormWrapper(returnType, name) GenWrapper(returnType, MpForm_, name, MpForm*)
+#define GenFormWrapper1(returnType, name, arg1Type) GenWrapper1(returnType, MpForm_, name, MpForm*, arg1Type)
+#define GenFormWrapperVoid(name) GenWrapperVoid(MpForm_, name, MpForm*)
+#define GenFormWrapperVoid1(name, arg1Type) GenWrapperVoid1(MpForm_, name, MpForm*, arg1Type)
+
 #define GenObjectReferenceWrapper(returnType, name) GenWrapper(returnType, MpObjectReference_, name, MpObjectReference*)
 #define GenObjectReferenceWrapper1(returnType, name, arg1Type) GenWrapper1(returnType, MpObjectReference_, name, MpObjectReference*, arg1Type)
 #define GenObjectReferenceWrapperVoid(name) GenWrapperVoid(MpObjectReference_, name, MpObjectReference*)
@@ -126,6 +137,7 @@ SLExport unsigned short GetUserByActor(ScampServer* sl, uint32_t formId);
 SLExport void AttachSaveStorage(ScampServer* sl);
 SLExport void SendCustomPacket(ScampServer* sl, unsigned short userId, char* json_data);
 SLExport uint32_t FindHoster(ScampServer* ss, uint32_t formId); //Returns 0 if no found // че за host? не понимаю что это
+SLExport Option_server__MpForm GetMpForm(ScampServer* ss, uint32_t formId);
 SLExport Option_server__MpObjectReference GetMpObjectReference(ScampServer* ss, uint32_t formId);
 SLExport Option_server__MpActor GetMpActor(ScampServer* ss, uint32_t formId);
 
@@ -142,6 +154,8 @@ GenCastObj(MpActor, MpObjectReference)
 //================================================================
 //MpForm
 //================================================================
+
+GenFormWrapper(uint32_t, GetFormId)
 
 //================================================================
 //MpObjectReference

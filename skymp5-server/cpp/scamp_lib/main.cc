@@ -462,6 +462,24 @@ extern "C" {
         return new VarValue(res);
     }*/
 
+    SLExport Option_server__MpForm GetMpForm(ScampServer* ss, uint32_t formId) {
+        Option_server__MpForm opt;
+        try
+        {
+            MpForm* ref = &ss->partOne->worldState.GetFormAt<MpForm>(formId);
+
+            MpForm* val[] = { ref };
+            opt_ok(&val, (Option*)(&opt), sizeof(MpForm*));
+
+            return opt;
+        }
+        catch (const std::exception& e)
+        {
+            auto msg = CreateString((char*)e.what());
+            return Option_server__MpForm{ 2, _v_error(msg), { 0 } };
+        }
+    }
+
     SLExport Option_server__MpObjectReference GetMpObjectReference(ScampServer* ss, uint32_t formId) {
         Option_server__MpObjectReference opt;
         try
