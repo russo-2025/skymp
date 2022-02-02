@@ -18,25 +18,6 @@ class MpObjectReference;
 class MpActor;
 class FormDesc;
 
-/*
-struct Option_server__MpForm {
-    byte state;
-    IError err;
-    byte data[sizeof(MpForm*)];
-};
-
-struct Option_server__MpObjectReference {
-    byte state;
-    IError err;
-    byte data[sizeof(MpObjectReference*)];
-};
-
-struct Option_server__MpActor {
-    byte state;
-    IError err;
-    byte data[sizeof(MpActor*)];
-};*/
-
 #define GenWrapper(returnType, prefix, name, thisType) \
     SLExport returnType prefix##name##(##thisType thisArg) { \
         return thisArg->##name##(); \
