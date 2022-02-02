@@ -462,55 +462,39 @@ extern "C" {
         return new VarValue(res);
     }*/
 
-    SLExport Option_server__MpForm GetMpForm(ScampServer* ss, uint32_t formId) {
-        Option_server__MpForm opt;
+    SLExport MpForm* GetMpForm(ScampServer* ss, uint32_t formId) {
         try
         {
-            MpForm* ref = &ss->partOne->worldState.GetFormAt<MpForm>(formId);
-
-            MpForm* val[] = { ref };
-            opt_ok(&val, (Option*)(&opt), sizeof(MpForm*));
-
-            return opt;
+            MpForm* form = &ss->partOne->worldState.GetFormAt<MpForm>(formId);
+            return form;
         }
         catch (const std::exception& e)
         {
-            auto msg = CreateString((char*)e.what());
-            return Option_server__MpForm{ 2, _v_error(msg), { 0 } };
+            return nullptr;
         }
     }
 
-    SLExport Option_server__MpObjectReference GetMpObjectReference(ScampServer* ss, uint32_t formId) {
-        Option_server__MpObjectReference opt;
+    SLExport MpObjectReference* GetMpObjectReference(ScampServer* ss, uint32_t formId) {
         try
         {
             MpObjectReference* ref = &ss->partOne->worldState.GetFormAt<MpObjectReference>(formId);
-
-            MpObjectReference* val[] = { ref };
-            opt_ok(&val, (Option*)(&opt), sizeof(MpObjectReference*));
-
-            return opt;
+            return ref;
         }
         catch (const std::exception& e)
         {
-            auto msg = CreateString((char*)e.what());
-            return Option_server__MpObjectReference{ 2, _v_error(msg), { 0 } };
+            return nullptr;
         }
     }
 
-    SLExport Option_server__MpActor GetMpActor(ScampServer* ss, uint32_t formId) {
-        Option_server__MpActor opt;
+    SLExport MpActor* GetMpActor(ScampServer* ss, uint32_t formId) {
         try
         {
             MpActor* ac = &ss->partOne->worldState.GetFormAt<MpActor>(formId);
-            MpActor* val[] = { ac };
-            opt_ok(&val, (Option*)(&opt), sizeof(MpActor*));
-            return opt;
+            return ac;
         }
         catch (const std::exception& e)
         {
-            auto msg = CreateString((char*)e.what());
-            return Option_server__MpActor{ 2, _v_error(msg), { 0 } };
+            return nullptr;
         }
     }
 

@@ -18,6 +18,7 @@ class MpObjectReference;
 class MpActor;
 class FormDesc;
 
+/*
 struct Option_server__MpForm {
     byte state;
     IError err;
@@ -34,7 +35,7 @@ struct Option_server__MpActor {
     byte state;
     IError err;
     byte data[sizeof(MpActor*)];
-};
+};*/
 
 #define GenWrapper(returnType, prefix, name, thisType) \
     SLExport returnType prefix##name##(##thisType thisArg) { \
@@ -137,9 +138,9 @@ SLExport unsigned short GetUserByActor(ScampServer* sl, uint32_t formId);
 SLExport void AttachSaveStorage(ScampServer* sl);
 SLExport void SendCustomPacket(ScampServer* sl, unsigned short userId, char* json_data);
 SLExport uint32_t FindHoster(ScampServer* ss, uint32_t formId); //Returns 0 if no found // че за host? не понимаю что это
-SLExport Option_server__MpForm GetMpForm(ScampServer* ss, uint32_t formId);
-SLExport Option_server__MpObjectReference GetMpObjectReference(ScampServer* ss, uint32_t formId);
-SLExport Option_server__MpActor GetMpActor(ScampServer* ss, uint32_t formId);
+SLExport MpForm* GetMpForm(ScampServer* ss, uint32_t formId); //Returns 0 if no found
+SLExport MpObjectReference* GetMpObjectReference(ScampServer* ss, uint32_t formId); //Returns 0 if no found
+SLExport MpActor* GetMpActor(ScampServer* ss, uint32_t formId); //Returns 0 if no found
 
 //================================================================
 //Cast Object
