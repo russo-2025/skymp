@@ -168,6 +168,14 @@ SLExport void MpObjectReference_SetPosition(MpObjectReference* ref, struct Posit
 //================================================================
 GenActorWrapper(uint32_t, GetIdx)
 GenActorWrapper(uint32_t, GetFormId)
+GenActorWrapper(bool, IsRaceMenuOpen) //unused
+GenActorWrapper(bool, IsDead) //unused
+GenActorWrapper(bool, IsRespawning) //unused
+GenActorWrapper(uint32_t, GetRaceId) //unused
+GenActorWrapper(bool, IsWeaponDrawn) //unused
+GenActorWrapper(float, GetRespawnTime) //unused
+GenActorWrapperVoid1(SetRespawnTime, float) //unused
+GenActorWrapperVoid1(SetIsDead, bool) //unused
 
 SLExport void MpActor_SendToUser(MpActor* ac, string msg);
 SLExport void MpActor_SendToNeighbors(MpActor* ac, string msg);
