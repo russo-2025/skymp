@@ -103,7 +103,7 @@ SLExport void SetConnectHandler(ScampServer* ss, onConnectFn* handler);
 SLExport void SetDisconnectHandler(ScampServer* ss, onDisconnectFn* handler);
 SLExport void SetCustomPacketHandler(ScampServer* ss, OnCustomPacketFn* handler);
 SLExport void SetPacketHandler(ScampServer* ss, PacketHandlerFn* handler);
-SLExport Option_void Tick(ScampServer* sl);
+SLExport void Tick(ScampServer* sl);
 SLExport uint32_t CreateActor(ScampServer* sl, uint32_t formId, struct Position pos, float angleZ, uint32_t cellOrWorld, int32_t profileId);
 SLExport void SetUserActor(ScampServer* sl, unsigned short userId, uint32_t actorFormId);
 SLExport uint32_t GetUserActor(ScampServer* sl, unsigned short userId);

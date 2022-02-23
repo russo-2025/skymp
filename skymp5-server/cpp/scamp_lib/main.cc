@@ -121,6 +121,10 @@ std::shared_ptr<ISaveStorage> CreateSaveStorage(std::shared_ptr<IDatabase> db, s
 }
 
 extern "C" {
+    void Error(char* msg) {
+        printf("[CPP ERROR] %s\n", msg);
+    }
+
     //================================================================
     //ScampServer
     //================================================================
@@ -214,20 +218,14 @@ extern "C" {
         ss->partOne->SetPacketHandler(handler);
     }
 
-    SLExport Option_void Tick(ScampServer* ss)
+    SLExport void Tick(ScampServer* ss)
     {
         try {
             ss->server->Tick(PartOne::HandlePacket, ss->partOne.get());
             ss->partOne->Tick();
-            return Option_void { 0 };
         }
         catch (std::exception& e) {
-            auto msg = CreateString((char*)e.what());
-            return Option_void{ 2, _v_error(msg), { 0 } };
-        }
-        catch (...) {
-            auto msg = CreateString("Unknown error");
-            return Option_void{ 2, _v_error(msg), { 0 } };
+            Error((char*)e.what());
         }
     }
 
@@ -468,7 +466,7 @@ extern "C" {
             MpForm* form = &ss->partOne->worldState.GetFormAt<MpForm>(formId);
             return form;
         }
-        catch (const std::exception& e)
+        catch (...)
         {
             return nullptr;
         }
@@ -480,7 +478,7 @@ extern "C" {
             MpObjectReference* ref = &ss->partOne->worldState.GetFormAt<MpObjectReference>(formId);
             return ref;
         }
-        catch (const std::exception& e)
+        catch (...)
         {
             return nullptr;
         }
@@ -492,7 +490,7 @@ extern "C" {
             MpActor* ac = &ss->partOne->worldState.GetFormAt<MpActor>(formId);
             return ac;
         }
-        catch (const std::exception& e)
+        catch (...)
         {
             return nullptr;
         }
@@ -519,18 +517,8 @@ extern "C" {
     }
 
     SLExport Position MpObjectReference_GetPosition(MpObjectReference* ref) {
-        try
-        {
-            auto pos = ref->GetPos();
-            return Position{ pos.x, pos.y, pos.z };
-        }
-        catch (const std::exception& e)
-        {
-            throw e.what();
-        }
-        catch (...) {
-            throw "unk err";
-        }
+        auto pos = ref->GetPos();
+        return Position{ pos.x, pos.y, pos.z };
     }
 
     SLExport void MpObjectReference_SetPosition(MpObjectReference* ref, Position pos) {
@@ -547,6 +535,7 @@ extern "C" {
 
     SLExport void MpActor_SendToNeighbors(MpActor* ac, string msg) {
         for (auto listener : ac->GetListeners()) {
+            //printf("[TEST CPP] neighbor form id: '%x'\n", listener->GetFormId());
             auto listenerAsActor = dynamic_cast<MpActor*>(listener);
             if (listenerAsActor)
                 listenerAsActor->SendToUser(msg.str, msg.len, true);
