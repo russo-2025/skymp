@@ -3,7 +3,7 @@
 #include <MyChromiumApp.h>
 #include <filesystem>
 #include <fstream>
-#include "Config.h"
+#include "../src/platform_se/skyrim_platform/Config.h"
 
 #include <random>
 #include <string>

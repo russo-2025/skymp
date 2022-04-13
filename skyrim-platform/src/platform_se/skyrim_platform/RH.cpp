@@ -3,21 +3,21 @@
 
 // DisableConsole
 // DisableDoubleSpeed
-#include <RE/ButtonEvent.h>
-#include <RE/ConsoleLog.h>
-#include <RE/IMenu.h>
-#include <RE/InputEvent.h>
-#include <RE/MenuControls.h>
-#include <RE/MenuEventHandler.h>
-#include <RE/UI.h>
-#include <RE/UIMessage.h>
+#include <RE/B/ButtonEvent.h>
+#include <RE/C/ConsoleLog.h>
+#include <RE/I/IMenu.h>
+#include <RE/I/InputEvent.h>
+#include <RE/M/MenuControls.h>
+#include <RE/M/MenuEventHandler.h>
+#include <RE/U/UI.h>
+#include <RE/U/UIMessage.h>
 
 //DevApi::DisableCtrlPrtScnHotkey
 #include "DevApi.h"
 
 // SetWorldFOV
 // SetFirstPersonFOV
-#include <RE/PlayerCamera.h>
+#include <RE/P/PlayerCamera.h>
 
 namespace RE {
 class ScreenshotHandler : public MenuEventHandler
@@ -50,8 +50,8 @@ public:
   virtual bool ProcessButton(ButtonEvent* a_event);
 
   bool registered; // 0C
-  UInt8 unk0D;     // 0D
-  UInt16 pad0E;    // 0E
+  std::uint8_t unk0D;     // 0D
+  std::uint16_t pad0E;    // 0E
 };
 }
 
@@ -69,9 +69,7 @@ public:
 class WrapperScreenShotEventHandler : public RE::MenuEventHandler
 {
 public:
-  WrapperScreenShotEventHandler::WrapperScreenShotEventHandler(
-    RE::MenuEventHandler* originalHandler_)
-    : originalHandler(originalHandler_)
+  WrapperScreenShotEventHandler(RE::MenuEventHandler* originalHandler_): originalHandler(originalHandler_)
   {
   }
 
@@ -111,7 +109,7 @@ public:
   {
     return RE::UI_MESSAGE_RESULTS::kIgnore;
   }
-  void AdvanceMovie(float a_interval, UInt32 a_currentTime) { return; }
+  void AdvanceMovie(float a_interval, std::uint32_t a_currentTime) { return; }
   void PostDisplay() { return; }
   void PreDisplay() { return; }
   void RefreshPlatform() { return; }
@@ -138,7 +136,8 @@ void DisableConsole()
   auto mc = RE::MenuControls::GetSingleton();
   auto ui = RE::UI::GetSingleton();
 
-  ui->menuMap.insert_or_assign({ "Console", { nullptr,
+  ui->menuMap.erase("Console");
+  ui->menuMap.insert({ "Console", { nullptr,
       []() -> RE::IMenu* {
           return (
               RE::IMenu*)new EmptyMenu();
@@ -155,12 +154,14 @@ void DisableModMenu()
 {
   auto ui = RE::UI::GetSingleton();
 
-  ui->menuMap.insert_or_assign(
+  ui->menuMap.erase("Console");
+  ui->menuMap.insert(
     { "Mod Manager Menu", { nullptr, []() -> RE::IMenu* {
                              return (RE::IMenu*)new EmptyMenu();
                            } } });
 
-  ui->menuMap.insert_or_assign(
+  ui->menuMap.erase("Console");
+  ui->menuMap.insert(
     { "Creation Club Menu", { nullptr, []() -> RE::IMenu* {
                                return (RE::IMenu*)new EmptyMenu();
                              } } });
