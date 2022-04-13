@@ -1,5 +1,6 @@
 #pragma once
 #include "Appearance.h"
+#include "GetBaseActorValues.h"
 #include "MpObjectReference.h"
 #include "Structures.h"
 #include <memory>
@@ -7,8 +8,6 @@
 #include <set>
 
 class WorldState;
-
-constexpr float kRespawnTimeSeconds = 5.f;
 
 class MpActor : public MpObjectReference
 {
@@ -60,6 +59,11 @@ public:
   void ResolveSnippet(uint32_t snippetIdx, VarValue v);
   void SetPercentages(float healthPercentage, float magickaPercentage,
                       float staminaPercentage, MpActor* aggressor = nullptr);
+  void NetSetPercentages(float healthPercentage, float magickaPercentage,
+                         float staminaPercentage,
+                         std::chrono::steady_clock::time_point timePoint =
+                           std::chrono::steady_clock::now(),
+                         MpActor* aggressor = nullptr);
 
   std::chrono::steady_clock::time_point GetLastAttributesPercentagesUpdate();
   std::chrono::steady_clock::time_point GetLastHitTime();
@@ -73,12 +77,24 @@ public:
   std::chrono::duration<float> GetDurationOfAttributesPercentagesUpdate(
     std::chrono::steady_clock::time_point now);
 
-  void Kill(MpActor* killer = nullptr);
-  void RespawnAfter(float seconds, const LocationalData& position);
-  void Respawn(const LocationalData& position);
+  void Kill(MpActor* killer = nullptr, bool shouldTeleport = false);
+  void Respawn(bool shouldTeleport = true);
+  void RespawnWithDelay(bool shouldTeleport = true);
   void Teleport(const LocationalData& position);
   void SetSpawnPoint(const LocationalData& position);
   LocationalData GetSpawnPoint() const;
+  const float GetRespawnTime() const;
+  void SetRespawnTime(float time);
+
+  void SetIsDead(bool isDead);
+
+  void RestoreActorValue(espm::ActorValue av, float value);
+  void DamageActorValue(espm::ActorValue av, float value);
+
+  BaseActorValues GetBaseValues();
+  BaseActorValues GetMaximumValues();
+
+  void DropItem(const uint32_t baseId, const Inventory::Entry& entry);
 
 private:
   std::set<std::shared_ptr<DestroyEventSink>> destroyEventSinks;
@@ -86,12 +102,13 @@ private:
   struct Impl;
   std::shared_ptr<Impl> pImpl;
 
-  void SendAndSetDeathState(bool isDead);
-  void SendAndSetDeathState(const LocationalData& position, bool isDead,
-                            bool shouldTeleport = true);
+  void SendAndSetDeathState(bool isDead, bool shouldTeleport);
   std::string GetDeathStateMsg(const LocationalData& position, bool isDead,
                                bool shouldTeleport);
   void MpApiDeath(MpActor* killer = nullptr);
+  void EatItem(uint32_t baseId, espm::Type t);
+
+  void ModifyActorValuePercentage(espm::ActorValue av, float percentageDelta);
 
 protected:
   void BeforeDestroy() override;

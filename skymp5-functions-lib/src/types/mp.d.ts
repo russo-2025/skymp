@@ -111,6 +111,9 @@ export interface Mp {
   get(formId: number, propertyName: 'equipment'): Equipment;
   get(formId: number, propertyName: 'baseDesc'): string;
   get(formId: 0, propertyName: 'onlinePlayers'): number[];
+  get(formId: number, propertyName: 'isDead'): boolean;
+  get(formId: number, propertyName: 'worldOrCellDesc'): string;
+  get(formId: number, propertyName: 'percentages'): { health: number, magicka: number, stamina: number };
 
   /**
    * Modifies value of the specified property.
@@ -122,6 +125,8 @@ export interface Mp {
   set(formId: number, propertyName: 'inventory', newValue: Inventory): void;
   set(formId: number, propertyName: 'locationalData', newValue: LocationalData): void;
   set(formId: number, propertyName: 'spawnPoint', newValue: LocationalData): void;
+  set(formId: number, propertyName: 'isDead', newValue: boolean): void;
+  set(formId: number, propertyName: 'percentages', newValue: { health: number, magicka: number, stamina: number }): void;
 
   /**
    * Creates a new property that would be attached to all instances of
@@ -158,7 +163,7 @@ export interface Mp {
 
   getDescFromId(formId: number): string;
 
-  getIdFromDesc(formDesc: string): Number;
+  getIdFromDesc(formDesc: string): number;
 
   place(globalRecordId: number): number;
 
